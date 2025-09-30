@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cold Recruit Machine</title>
+  <style>
+    :root {
+      --bg: #12161c;        /* page background */
+      --panel: #1b212b;     /* cards/tables */
+      --panel-2: #222a36;   /* alt row/bg */
+      --text: #e9eef7;      /* main text */
+      --muted: #9aa6b2;     /* secondary text */
+      --accent: #c70000;    /* KW Explore red */
+      --ok: #1f9d55;
+      --warn: #d97706;
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body { 
+      margin: 0; font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; 
+      background: var(--bg); color: var(--text);
+    }
+    .wrap { max-width: 1280px; margin: 24px auto; padding: 0 16px; }
+    header { display:flex; align-items:center; justify-content:space-between; gap: 12px; margin-bottom: 16px; }
+    h1 { font-size: 20px; font-weight: 700; margin: 0; color: var(--accent); }
+    .actions { display:flex; gap: 8px; align-items:center; flex-wrap: wrap; }
+    button, select, input[type="text"], textarea { 
+      background: var(--panel-2); color: var(--text); border: 1px solid #2f3a4a; 
+      border-radius: 10px; padding: 10px 12px; font-size: 14px; outline: none; 
+    }
+    button:hover { border-color: var(--accent); cursor: pointer; }
+    .stats { display:grid; grid-template-columns: repeat(9, minmax(0, 1fr)); gap: 10px; margin: 10px 0 18px; }
+    .stat { background: var(--panel); padding: 16px; border-radius: 14px; text-align:center; border-top: 3px solid var(--accent); border: 1px solid #2f3a4a; cursor: pointer; transition: transform 120ms ease, border-color 120ms ease, box-shadow 120ms ease, background 120ms ease; }
+    .stat .num { font-size: 26px; font-weight: 800; color: var(--accent); }
+    .stat:hover { border-color: var(--accent); transform: translateY(-1px); }
+    .stat.active { background: #0c1118; box-shadow: inset 0 0 0 2px var(--accent); }
+    .stat.active .num { color: #ffffff; }
+    .stat .label { font-size: 12px; color: var(--muted); margin-top: 6px; }
+
+    .toolbar { display:grid; grid-template-columns: 1fr auto; align-items:center; gap: 10px; margin: 14px 0; border-bottom: 2px solid var(--accent); padding-bottom: 10px; }
+    .filters { display:flex; gap: 8px; align-items:center; flex-wrap: wrap; }
+
+    .table { background: var(--panel); border-radius: 14px; overflow: hidden; border: 1px solid #2f3a4a; }
+    table { width: 100%; border-collapse: collapse; }
+    thead th { text-align: left; font-size: 12px; color: var(--muted); background: #1e2632; padding: 12px; border-bottom: 2px solid var(--accent); }
+    tbody td { padding: 12px; border-top: 1px solid #2a3342; font-size: 14px; vertical-align: middle; }
+    tbody tr:nth-child(odd) td { background: #1a202a; }
+    a.link { color: #7bc4ff; text-decoration: none; font-weight: 600; }
+    a.link:hover { text-decoration: underline; }
+
+    .bulk { display:flex; align-items:center; gap: 8px; margin-left:auto; }
+    .status-select { background: var(--panel-2); border: 1px solid #2f3a4a; color: var(--text); border-radius: 8px; padding: 8px; }
+    .checkbox { width: 18px; height: 18px; }
+
+    .note-input { width: 280px; max-width: 280px; min-width: 220px; height: 36px; padding: 8px 10px; border-radius: 8px; }
+    .note-input.saving { border-color: var(--warn); }
+    .note-input.saved { border-color: var(--ok); }
+
+    .sticky-top { position: sticky; top: 0; background: var(--bg); padding-top: 10px; z-index: 5; }
+    .hint { color: var(--muted); font-size: 12px; }
+    .filters-label { font-size: 12px; color: var(--muted); margin-right: 6px; }
+    /* Focus accent */
+    button:focus, select:focus, input[type="text"]:focus, textarea:focus, .status-select:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px rgba(199, 0, 0, 0.25);
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>Cold Recruit Machine</h1>
+      <div class="actions">
+        <button id="rerun">Re-run Automations</button>
+        <button id="reload">Reload</button>
+      </div>
+    </header>
+
+    <div class="stats" id="stats"></div>
+
+    <div class="sticky-top">
+      <div class="toolbar">
+        <div class="filters">
+          <span class="filters-label">Filters</span>
+          <select id="filterAgency">
+            <option value="__ALL__">Agency (all)</option>
+          </select>
+          <select id="filterStatus">
+            <option value="__ALL__">All statuses</option>
+          </select>
+          <input type="text" id="search" placeholder="Search by name or surname…" style="min-width:260px" />
+          <button id="resetFilters">Reset</button>
+        </div>
+        <div class="bulk">
+          <select id="bulkStatus" class="status-select"></select>
+          <button id="applyBulk">Apply to Selected</button>
+          <button id="clearChecks">Clear</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="table">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:36px;"><input class="checkbox" type="checkbox" id="checkAll" /></th>
+            <th>Status</th>
+            <th>WhatsApp</th>
+            <th>Name</th>
+            <th>Surname</th>
+            <th>Cell Nr</th>
+            <th>Email</th>
+            <th>Agency</th>
+            <th>Last Contact</th>
+            <th>Notes</th>
+          </tr>
+        </thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    // ====== CONFIG ======
+    const API_BASE = "https://script.google.com/macros/s/AKfycbwyURwawIavmhuOgHgnfXcfRpSqFi615TC5te9GP830s3hWdoOauQjykNlp1Xp74Z5QsQ/exec"; // your deployed Apps Script URL
+
+    const STATUS_OPTIONS = [
+      "To Contact", "Whatsapp", "Reply", "Keen to meet", "Cultivate",
+      "Invite to events", "Not interested", "No Whatsapp"
+    ];
+
+    const els = {
+      stats: document.getElementById('stats'),
+      rows: document.getElementById('rows'),
+      search: document.getElementById('search'),
+      checkAll: document.getElementById('checkAll'),
+      bulkStatus: document.getElementById('bulkStatus'),
+      applyBulk: document.getElementById('applyBulk'),
+      clearChecks: document.getElementById('clearChecks'),
+      rerun: document.getElementById('rerun'),
+      reload: document.getElementById('reload'),
+      filterAgency: document.getElementById('filterAgency'),
+      filterStatus: document.getElementById('filterStatus'),
+      resetFilters: document.getElementById('resetFilters'),
+    };
+
+    let raw = [];   // entire sheet including header
+    let map = {};   // header -> column index map (0-based)
+
+    function headerMap(headers) {
+      const m = {};
+      headers.forEach((h, i) => m[String(h || '').trim().toUpperCase()] = i);
+      return m;
+    }
+
+    function fmtDate(v) {
+      if (!v) return '';
+      const d = (typeof v === 'string') ? new Date(v) : new Date(v);
+      if (isNaN(d)) return '';
+      return d.toLocaleDateString();
+    }
+
+    function optionEl(value, selected) {
+      const o = document.createElement('option');
+      o.value = value; o.textContent = value; if (selected) o.selected = true; return o;
+    }
+
+    function renderStats(rows) {
+      const counts = {
+        total: rows.length,
+        "To Contact": 0, Whatsapp: 0, Reply: 0, "Keen to meet": 0, Cultivate: 0,
+        "Invite to events": 0, "Not interested": 0, "No Whatsapp": 0
+      };
+      rows.forEach(r => { counts[r.status] = (counts[r.status] || 0) + 1; });
+
+      const active = (els.filterStatus.value && els.filterStatus.value !== '__ALL__') ? els.filterStatus.value : '__TOTAL__';
+      const blocks = [
+        { key: '__TOTAL__', label: 'Total', num: counts.total },
+        { key: 'To Contact', label: 'To Contact', num: counts['To Contact'] },
+        { key: 'Whatsapp', label: 'Whatsapp', num: counts['Whatsapp'] },
+        { key: 'Reply', label: 'Reply', num: counts['Reply'] },
+        { key: 'Keen to meet', label: 'Keen to meet', num: counts['Keen to meet'] },
+        { key: 'Cultivate', label: 'Cultivate', num: counts['Cultivate'] },
+        { key: 'Invite to events', label: 'Invite to events', num: counts['Invite to events'] },
+        { key: 'Not interested', label: 'Not interested', num: counts['Not interested'] },
+        { key: 'No Whatsapp', label: 'No Whatsapp', num: counts['No Whatsapp'] },
+      ];
+
+      els.stats.innerHTML = blocks.map(b => (
+        `<div class="stat ${active===b.key?'active':''}" data-status="${b.key}" role="button" tabindex="0" aria-pressed="${active===b.key}"><div class="num">${b.num || 0}</div><div class="label">${b.label}</div></div>`
+      )).join('');
+
+      // Click/keyboard to set filter and optionally MOVE selected rows to that status
+      els.stats.querySelectorAll('.stat').forEach(st => {
+        const go = async () => {
+          const key = st.getAttribute('data-status');
+          if (key === '__TOTAL__') {
+            els.filterStatus.value = '__ALL__';
+            refresh();
+            scrollToStatus();
+            return;
+          }
+          // 1) Set the status filter
+          els.filterStatus.value = key;
+          refresh();
+          scrollToStatus();
+
+          // 2) If there are selected rows, offer quick move into this status
+          const selected = getSelectedRowIndices0();
+          if (selected.length) {
+            const ok = confirm(`Move ${selected.length} selected to "${key}"?`);
+            if (ok) {
+              await apiPost('bulkUpdateStatus', { rowIndices: selected, newStatus: key });
+              await load();
+            }
+          }
+        };
+        st.addEventListener('click', go);
+        st.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); } });
+      });
+    }
+
+    function toRowObjects(data) {
+      const rows = [];
+      for (let i = 1; i < data.length; i++) {
+        const row = data[i];
+        if (!row || row.length === 0) continue;
+        rows.push({
+          _sheetIndex: i, // 1-based with header row at index 0 — used by backend (minus 1 there)
+          status: row[map['STATUS']] || '',
+          wa: row[map['WHATSAPP LINK']] || '',
+          name: row[map['NAME']] || '',
+          surname: row[map['SURNAME']] || '',
+          cell: row[map['CELL NR']] || '',
+          email: row[map['EMAIL']] || '',
+          agency: row[map['AGENCY']] || '',
+          last: row[map['LAST CONTACT DATE']] || '',
+          notes: row[map['NOTES']] || ''
+        });
+      }
+      return rows;
+    }
+
+    function uniqueAgencies(rows) {
+      const s = new Set();
+      rows.forEach(r => { const a = (r.agency || '').trim(); if (a) s.add(a); });
+      return Array.from(s).sort((a,b) => a.localeCompare(b));
+    }
+
+    function populateFilters(rows) {
+      // Agency options
+      const agencies = uniqueAgencies(rows);
+      els.filterAgency.innerHTML = '';
+      els.filterAgency.appendChild(new Option('Agency (all)', '__ALL__'));
+      agencies.forEach(a => els.filterAgency.appendChild(new Option(a, a)));
+
+      // Status options
+      els.filterStatus.innerHTML = '';
+      els.filterStatus.appendChild(new Option('All statuses', '__ALL__'));
+      STATUS_OPTIONS.forEach(s => els.filterStatus.appendChild(new Option(s, s)));
+    }
+
+    function renderTable(rows) {
+      // Fill bulk select options once
+      if (!els.bulkStatus.options.length) {
+        STATUS_OPTIONS.forEach(s => els.bulkStatus.appendChild(optionEl(s)));
+      }
+
+      els.rows.innerHTML = rows.map((r) => {
+        const waLink = r.wa ? `<a class="link" href="${r.wa}" target="_blank" rel="noopener">Open Chat</a>` : '';
+        const statusSel = `<select class="status-select" data-row="${r._sheetIndex}">` +
+          STATUS_OPTIONS.map(s => `<option value="${s}" ${s===r.status?'selected':''}>${s}</option>`).join('') + `</select>`;
+        const noteEl = `<input class="note-input" type="text" value="${(r.notes||'').toString().replace(/&/g,'&amp;').replace(/"/g,'&quot;')}" data-row="${r._sheetIndex}" />`;
+        return `
+          <tr>
+            <td><input class="checkbox row-check" type="checkbox" data-row="${r._sheetIndex}"></td>
+            <td>${statusSel}</td>
+            <td>${waLink}</td>
+            <td>${r.name}</td>
+            <td>${r.surname}</td>
+            <td>${r.cell}</td>
+            <td>${r.email}</td>
+            <td>${r.agency}</td>
+            <td>${fmtDate(r.last)}</td>
+            <td>${noteEl}</td>
+          </tr>`;
+      }).join('');
+
+      // attach listeners for each status select
+      document.querySelectorAll('select.status-select').forEach(sel => {
+        sel.addEventListener('change', async (e) => {
+          const rowIndex = Number(e.target.getAttribute('data-row')) - 1; // backend expects 0-based excluding header
+          const newStatus = e.target.value;
+          await apiPost('updateSingleStatus', { rowIndex, newStatus });
+        });
+      });
+
+      // attach listeners for each notes input (debounced save on input/blur)
+      document.querySelectorAll('input.note-input').forEach(inp => {
+        const save = debounce(async () => {
+          const rowIndex = Number(inp.getAttribute('data-row')) - 1;
+          inp.classList.add('saving');
+          await apiPost('updateNote', { rowIndex, note: inp.value });
+          inp.classList.remove('saving');
+          inp.classList.add('saved');
+          setTimeout(() => inp.classList.remove('saved'), 900);
+        }, 400);
+        inp.addEventListener('input', save);
+        inp.addEventListener('blur', async () => {
+          const rowIndex = Number(inp.getAttribute('data-row')) - 1;
+          inp.classList.add('saving');
+          await apiPost('updateNote', { rowIndex, note: inp.value });
+          inp.classList.remove('saving');
+          inp.classList.add('saved');
+          setTimeout(() => inp.classList.remove('saved'), 900);
+        });
+      });
+    }
+
+    function applyAllFilters(rows) {
+      const q = (els.search.value || '').trim().toLowerCase();
+      const agency = els.filterAgency.value;
+      const status = els.filterStatus.value;
+
+      let out = rows;
+      if (agency && agency !== '__ALL__') out = out.filter(r => (r.agency || '') === agency);
+      if (status && status !== '__ALL__') out = out.filter(r => (r.status || '') === status);
+      if (q) out = out.filter(r => `${r.name} ${r.surname}`.toLowerCase().includes(q));
+      return out;
+    }
+
+    async function apiGet() {
+      const res = await fetch(API_BASE);
+      const json = await res.json();
+      if (json.result !== 'success') throw new Error(json.message || 'Error fetching');
+      return json.data;
+    }
+
+    async function apiPost(action, payload) {
+      const res = await fetch(API_BASE, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action, payload })
+      });
+      const json = await res.json();
+      if (json.result !== 'success') { console.error(json); alert(json.message || 'Action failed'); }
+      return json;
+    }
+
+    function refresh() {
+      const rows = toRowObjects(raw);
+      const filtered = applyAllFilters(rows);
+      renderStats(filtered);
+      renderTable(filtered);
+    }
+
+    async function load() {
+      raw = await apiGet();
+      map = headerMap(raw[0] || []);
+      const rows = toRowObjects(raw);
+      populateFilters(rows);
+      refresh();
+    }
+
+    // ====== EVENTS ======
+    els.search.addEventListener('input', refresh);
+    els.filterAgency.addEventListener('change', refresh);
+    els.filterStatus.addEventListener('change', refresh);
+    els.resetFilters.addEventListener('click', () => {
+      els.search.value = '';
+      els.filterAgency.value = '__ALL__';
+      els.filterStatus.value = '__ALL__';
+      refresh();
+    });
+
+    els.checkAll.addEventListener('change', (e) => {
+      document.querySelectorAll('.row-check').forEach(cb => cb.checked = e.target.checked);
+    });
+
+    els.applyBulk.addEventListener('click', async () => {
+      const selected = Array.from(document.querySelectorAll('.row-check:checked')).map(cb => Number(cb.getAttribute('data-row')) - 1);
+      const newStatus = els.bulkStatus.value;
+      if (!selected.length) { alert('Select at least one row.'); return; }
+      await apiPost('bulkUpdateStatus', { rowIndices: selected, newStatus });
+      await load();
+    });
+
+    els.clearChecks && els.clearChecks.addEventListener('click', () => {
+      document.querySelectorAll('.row-check').forEach(cb => cb.checked = false);
+      els.checkAll.checked = false;
+    });
+
+    els.rerun.addEventListener('click', async () => { await apiPost('rerunAutomations', {}); await load(); });
+    els.reload.addEventListener('click', load);
+
+    function debounce(fn, ms) {
+      let t; return (...args) => { clearTimeout(t); t = setTimeout(() => fn.apply(this, args), ms); };
+    }
+
+    function getSelectedRowIndices0(){
+      return Array.from(document.querySelectorAll('.row-check:checked')).map(cb => Number(cb.getAttribute('data-row')) - 1);
+    }
+    function scrollToStatus(){
+      const tbl = document.querySelector('.table');
+      if (tbl) tbl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      setTimeout(() => { const first = document.querySelector('select.status-select'); if (first) first.focus(); }, 300);
+    }
+
+    // Init
+    load().catch(err => alert(err.message || String(err)));
+  </script>
+</body>
+</html>
