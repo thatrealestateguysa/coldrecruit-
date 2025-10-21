@@ -3,9 +3,9 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>KW Explore — WhatsApp Sender (Simple)</title>
+  <title>Recruit 101</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <meta name="theme-color" content="#111827">
+  <meta name="theme-color" content="#0b0b0b">
   <link rel="icon" href="./assets/icon.png">
   <style>
     html,body { background:#0b0b0b; color:#e5e7eb; }
@@ -13,14 +13,15 @@
     select, input { background:#0b0b0b; }
     a.btn, button.btn { background:#e11d48; color:white; }
     .muted { color:#9ca3af; }
+    table th, table td { white-space: nowrap; }
   </style>
 </head>
 <body class="min-h-screen">
-  <div class="max-w-6xl mx-auto p-4 space-y-4">
+  <div class="max-w-7xl mx-auto p-4 space-y-4">
     <header class="flex items-center justify-between">
       <div class="flex items-center gap-3">
-        <img src="./assets/logo.png" alt="KW Explore" class="h-10 w-auto rounded-md" />
-        <h1 class="text-xl font-semibold">WhatsApp Sender — Simple</h1>
+        <img src="./assets/logo.png" alt="Recruit 101" class="h-10 w-auto rounded-md" />
+        <h1 class="text-xl font-semibold">Recruit 101</h1>
       </div>
       <div class="flex items-center gap-2">
         <label class="text-sm">After-send status</label>
@@ -36,90 +37,131 @@
         <table class="w-full text-sm">
           <thead class="text-xs uppercase muted">
             <tr class="border-b border-neutral-700">
-              <th class="p-2 text-left">Name</th>
-              <th class="p-2 text-left">Cell</th>
               <th class="p-2 text-left">Message Type</th>
-              <th class="p-2 text-left">WhatsApp</th>
               <th class="p-2 text-left">Status</th>
+              <th class="p-2 text-left">WhatsApp</th>
+              <th class="p-2 text-left">Name</th>
+              <th class="p-2 text-left">Surname</th>
+              <th class="p-2 text-left">Number</th>
+              <th class="p-2 text-left">Agency</th>
             </tr>
           </thead>
           <tbody id="rows"></tbody>
         </table>
       </div>
-      <p class="muted text-xs mt-2">Tip: Change the Message Type first, then click Send.</p>
+      <p class="muted text-xs mt-2">Change Message Type or Status, then click <b>Send</b>.</p>
     </section>
   </div>
 
 <script>
   const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxIJc_p_lX9SdQGAcinR_HjLcbey1l9eum3vMM9_bmHz1rrFwa0R_53FlfXLvK2jqPBsQ/exec";
   const MESSAGE_TYPES = ["Recruit", "Event 1 - Win Win"];
+  const STATUS_OPTIONS = ["To Contact", "Whatsapp", "Reply", "Keen to meet", "Cultivate", "Invite to events", "Not interested", "No Whatsapp", "Unsubscribe", "Referred"];
 
   const el = id => document.getElementById(id);
-  let data = [];
+  let rowsData = [];
 
   async function fetchRecipients() {
     const url = new URL(WEB_APP_URL);
     url.searchParams.set('action','recipients');
     const res = await fetch(url.toString());
     const js = await res.json();
-    data = js.recipients || [];
-    render();
+    rowsData = js.recipients || [];
+    renderTable();
   }
 
-  async function setMessageType(rowIndex, newType) {
+  async function updateMessageType(rowIndex, newType) {
     await fetch(WEB_APP_URL, {
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body: JSON.stringify({
-        action: 'updateMessageType',
+        action:'updateMessageType',
         payload: { rowIndex, newType }
       })
     });
   }
 
-  async function setStatus(rowIndex, newStatus) {
+  async function updateStatus(rowIndex, newStatus) {
     await fetch(WEB_APP_URL, {
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body: JSON.stringify({
-        action: 'updateSingleStatus',
+        action:'updateSingleStatus',
         payload: { rowIndex, newStatus }
       })
     });
   }
 
-  function typeSelectHtml(current) {
-    const opts = MESSAGE_TYPES.map(t => `<option value="${t}" ${t===current?'selected':''}>${t}</option>`).join('');
-    return `<select class="rounded-md p-1 typeSel">${opts}</select>`;
+  function selectHtml(opts, current) {
+    let html = '<select class="rounded-md p-1">';
+    for (const o of opts) {
+      const sel = (o === current) ? 'selected' : '';
+      html += `<option value="${o}" ${sel}>${o}</option>`;
+    }
+    html += '</select>';
+    return html;
   }
 
-  function render() {
+  function renderTable() {
     const tb = el('rows'); tb.innerHTML = '';
-    data.forEach((r, idx) => {
+    rowsData.forEach((r) => {
       const tr = document.createElement('tr');
       tr.className = 'border-b border-neutral-800';
-      const sendHtml = r.waLink ? `<a class="btn px-3 py-1 rounded-md" target="_blank" href="${r.waLink}">Send</a>` : '<span class="text-xs muted">No link</span>';
-      tr.innerHTML = `
-        <td class="p-2">${[r.name, r.surname].filter(Boolean).join(' ')}</td>
-        <td class="p-2">${r.cell || ''}</td>
-        <td class="p-2">${typeSelectHtml(r.messageType || 'Recruit')}</td>
-        <td class="p-2">${sendHtml}</td>
-        <td class="p-2">${r.status || ''}</td>
-      `;
-      const sel = tr.querySelector('.typeSel');
-      sel.addEventListener('change', async (e) => {
-        const newType = e.target.value;
-        sel.disabled = true;
-        await setMessageType(r.rowIndex, newType);
-        await fetchRecipients(); // pull the rebuilt WA_LINK/WA_MSG
+
+      // Message Type select
+      const tdType = document.createElement('td'); tdType.className='p-2';
+      tdType.innerHTML = selectHtml(MESSAGE_TYPES, r.messageType || 'Recruit');
+      const selType = tdType.querySelector('select');
+      selType.addEventListener('change', async (e) => {
+        selType.disabled = true;
+        await updateMessageType(r.rowIndex, e.target.value);
+        await fetchRecipients(); // reload to get rebuilt waLink
       });
-      const sendA = tr.querySelector('a.btn');
-      if (sendA) {
-        sendA.addEventListener('click', async () => {
+
+      // Status select
+      const tdStatus = document.createElement('td'); tdStatus.className='p-2';
+      tdStatus.innerHTML = selectHtml(STATUS_OPTIONS, r.status || '');
+      const selStatus = tdStatus.querySelector('select');
+      selStatus.addEventListener('change', async (e) => {
+        selStatus.disabled = true;
+        await updateStatus(r.rowIndex, e.target.value);
+        await fetchRecipients();
+      });
+
+      // WhatsApp button
+      const tdWA = document.createElement('td'); tdWA.className='p-2';
+      if (r.waLink) {
+        const a = document.createElement('a');
+        a.className = 'btn px-3 py-1 rounded-md';
+        a.textContent = 'Send';
+        a.href = r.waLink;
+        a.target = '_blank';
+        a.addEventListener('click', async () => {
           const st = el('afterStatus').value || 'Whatsapp';
-          try { await setStatus(r.rowIndex, st); } catch (e) {}
+          try { await updateStatus(r.rowIndex, st); } catch (e) {}
         });
+        tdWA.appendChild(a);
+      } else {
+        const span = document.createElement('span');
+        span.className = 'muted text-xs';
+        span.textContent = 'No link';
+        tdWA.appendChild(span);
       }
+
+      // Name / Surname / Number / Agency
+      const tdName = document.createElement('td'); tdName.className='p-2'; tdName.textContent = r.name || '';
+      const tdSur  = document.createElement('td'); tdSur.className='p-2'; tdSur.textContent  = r.surname || '';
+      const tdNum  = document.createElement('td'); tdNum.className='p-2'; tdNum.textContent  = r.cell || '';
+      const tdAg   = document.createElement('td'); tdAg.className='p-2'; tdAg.textContent   = r.agency || '';
+
+      tr.appendChild(tdType);
+      tr.appendChild(tdStatus);
+      tr.appendChild(tdWA);
+      tr.appendChild(tdName);
+      tr.appendChild(tdSur);
+      tr.appendChild(tdNum);
+      tr.appendChild(tdAg);
+
       tb.appendChild(tr);
     });
   }
