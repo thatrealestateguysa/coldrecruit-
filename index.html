@@ -17,11 +17,14 @@
     .chip { background:#111827; }
     code { background:#111827; padding:2px 6px; border-radius:6px; }
     select, textarea, input { background:#0b0b0b; }
+    .tab-btn { background:#111827; }
+    .tab-btn.active { background:#e11d48; }
+    a.sent-link { text-decoration: underline; }
   </style>
 </head>
 <body class="min-h-screen">
   <div class="max-w-7xl mx-auto p-4">
-    <header class="mb-6 flex items-center justify-between gap-3">
+    <header class="mb-4 flex items-center justify-between gap-3">
       <div class="flex items-center gap-3">
         <img src="./assets/logo.png" alt="logo" class="h-10 w-auto rounded-lg" />
         <h1 class="text-2xl font-semibold">Cold Recruit Machine — WhatsApp Sender</h1>
@@ -32,114 +35,141 @@
       </div>
     </header>
 
-    <!-- Filters -->
-    <section class="mb-4 grid md:grid-cols-4 gap-3">
-      <div class="card rounded-xl p-3">
-        <label class="text-sm">Filter by Agency</label>
-        <select id="agencyFilter" multiple class="w-full rounded-lg p-2 h-28 card"></select>
-        <p class="text-xs muted mt-1">Hold Ctrl/Cmd to multi-select.</p>
-      </div>
-      <div class="card rounded-xl p-3">
-        <label class="text-sm">Search name or number</label>
-        <input id="searchBox" class="w-full rounded-lg p-2 card" placeholder="Type to filter..." />
-      </div>
-      <div class="card rounded-xl p-3">
-        <label class="text-sm">Message Type (UI)</label>
-        <select id="uiTemplate" class="w-full rounded-lg p-2">
-          <option value="perrow">Use per-row MESSAGE TYPE</option>
-          <option value="recruit">Recruit</option>
-          <option value="event1">Event 1 — Win Win</option>
-        </select>
-        <p class="text-xs muted mt-1">Choose a template to prefill Quick Text, or use each row's MESSAGE TYPE column.</p>
-      </div>
-      <div class="flex items-end gap-2">
-        <button id="btnSelectAll" class="px-3 py-2 rounded-lg card">Select All (filtered)</button>
-        <button id="btnClearSel" class="px-3 py-2 rounded-lg card">Clear</button>
-      </div>
-    </section>
+    <!-- Tabs -->
+    <nav class="flex gap-2 mb-4">
+      <button id="tabContacts" class="tab-btn px-3 py-2 rounded-lg active">Contacts</button>
+      <button id="tabMessage" class="tab-btn px-3 py-2 rounded-lg">Message</button>
+    </nav>
 
-    <!-- Table -->
-    <section class="card rounded-xl p-3">
-      <div class="overflow-auto">
-        <table class="w-full text-sm">
-          <thead class="muted">
-            <tr class="border-b border-neutral-700">
-              <th class="p-2"><input type="checkbox" id="checkAll"/></th>
-              <th class="p-2">Status</th>
-              <th class="p-2">Message Type</th>
-              <th class="p-2">Name</th>
-              <th class="p-2">Surname</th>
-              <th class="p-2">Cell Nr</th>
-              <th class="p-2">Agency</th>
-              <th class="p-2">Notes</th>
-            </tr>
-          </thead>
-          <tbody id="rows"></tbody>
-        </table>
-      </div>
-    </section>
-
-    <!-- Composer -->
-    <section class="mt-6 grid lg:grid-cols-2 gap-4">
-      <!-- Images -->
-      <div class="card rounded-xl p-4">
-        <h2 class="font-semibold mb-2">Send Image + Caption</h2>
-        <div class="mb-3">
-          <label class="text-sm block mb-1">Caption (supports {'{name}'} {'{surname}'} {'{agency}'} {'{full_name}'})</label>
-          <textarea id="caption" rows="3" class="w-full rounded-lg p-2" placeholder="Add a caption..."></textarea>
+    <!-- Contacts View -->
+    <section id="viewContacts" class="space-y-4">
+      <!-- Controls row -->
+      <div class="grid md:grid-cols-4 gap-3">
+        <div class="card rounded-xl p-3">
+          <label class="text-sm">Filter by Agency</label>
+          <select id="agencyFilter" multiple class="w-full rounded-lg p-2 h-28 card"></select>
+          <p class="text-xs muted mt-1">Hold Ctrl/Cmd to multi-select.</p>
         </div>
-        <div class="mb-3">
-          <label class="text-sm block mb-1">Image</label>
-          <input id="imageFile" type="file" accept="image/*" class="block w-full text-sm" />
-          <img id="preview" class="mt-2 max-h-40 rounded-lg hidden" />
+        <div class="card rounded-xl p-3">
+          <label class="text-sm">Search name or number</label>
+          <input id="searchBox" class="w-full rounded-lg p-2 card" placeholder="Type to filter..." />
         </div>
-        <div class="flex items-center gap-4 mb-3">
-          <label class="inline-flex items-center gap-2">
-            <input id="useCloudApiImg" type="radio" name="modeImg" checked>
-            <span>Send with Cloud API (image supported)</span>
-          </label>
-          <label class="inline-flex items-center gap-2">
-            <input id="useDeviceImg" type="radio" name="modeImg">
-            <span>Open on my device (text only)</span>
-          </label>
+        <div class="card rounded-xl p-3">
+          <label class="text-sm block mb-1">Bulk set status</label>
+          <div class="flex gap-2">
+            <select id="bulkStatus" class="w-full rounded-lg p-2">
+              <option value="To Contact">To Contact</option>
+<option value="Whatsapp">Whatsapp</option>
+<option value="Reply">Reply</option>
+<option value="Keen to meet">Keen to meet</option>
+<option value="Cultivate">Cultivate</option>
+<option value="Invite to events">Invite to events</option>
+<option value="Not interested">Not interested</option>
+<option value="No Whatsapp">No Whatsapp</option>
+<option value="Unsubscribe">Unsubscribe</option>
+<option value="Referred">Referred</option>
+            </select>
+            <button id="btnBulkStatus" class="px-3 py-2 btn rounded-lg">Update Selected</button>
+          </div>
+          <p class="text-xs muted mt-1">Applies to checked rows.</p>
         </div>
-        <div class="flex gap-3">
-          <button id="btnSendImage" class="px-4 py-2 btn rounded-xl">Send Image to Selected</button>
-          <span id="statusImg" class="text-sm muted"></span>
+        <div class="card rounded-xl p-3">
+          <label class="text-sm block mb-1">After-send status</label>
+          <select id="afterSendStatus" class="w-full rounded-lg p-2">
+            <option value="To Contact" >To Contact</option>
+<option value="Whatsapp" selected>Whatsapp</option>
+<option value="Reply" >Reply</option>
+<option value="Keen to meet" >Keen to meet</option>
+<option value="Cultivate" >Cultivate</option>
+<option value="Invite to events" >Invite to events</option>
+<option value="Not interested" >Not interested</option>
+<option value="No Whatsapp" >No Whatsapp</option>
+<option value="Unsubscribe" >Unsubscribe</option>
+<option value="Referred" >Referred</option>
+          </select>
+          <p class="text-xs muted mt-1">Used when you click <b>Sent</b> in the Message tab.</p>
         </div>
       </div>
 
-      <!-- Quick Text -->
-      <div class="card rounded-xl p-4">
-        <h2 class="font-semibold mb-2">Quick Text</h2>
-        <div class="mb-3">
-          <label class="text-sm block mb-1">Message template</label>
-          <textarea id="quickText" rows="6" class="w-full rounded-lg p-2"
-            placeholder="Your message...">{{name}}, are you ready to close deals where everyone wins? Dawie, your Team Leader, is inviting you to an exclusive FREE Win-Win Negotiations Workshop at KW Explore on Nov 6. It's a full day of skills training (lunch included!) to elevate your game. Register here before it fills up: https://explore.yourkwoffice.com/winwin-negotiations</textarea>
-          <p class="text-xs muted mt-1">Placeholders: <code>{'{name}'}</code> <code>{'{surname}'}</code> <code>{'{agency}'}</code> <code>{'{full_name}'}</code></p>
+      <!-- Table -->
+      <section class="card rounded-xl p-3">
+        <div class="overflow-auto">
+          <table class="w-full text-sm">
+            <thead class="muted">
+              <tr class="border-b border-neutral-700">
+                <th class="p-2"><input type="checkbox" id="checkAll"/></th>
+                <th class="p-2">Status</th>
+                <th class="p-2">Message Type</th>
+                <th class="p-2">Name</th>
+                <th class="p-2">Surname</th>
+                <th class="p-2">Cell Nr</th>
+                <th class="p-2">Agency</th>
+                <th class="p-2">Notes</th>
+              </tr>
+            </thead>
+            <tbody id="rows"></tbody>
+          </table>
         </div>
-        <div class="flex items-center gap-4 mb-3">
-          <label class="inline-flex items-center gap-2">
-            <input id="useCloudApiText" type="radio" name="modeText" checked>
-            <span>Send with Cloud API</span>
-          </label>
-          <label class="inline-flex items-center gap-2">
-            <input id="useDeviceText" type="radio" name="modeText">
-            <span>Open device links (wa.me)</span>
-          </label>
+        <div class="mt-3 flex items-center gap-2">
+          <button id="btnSelectAll" class="px-3 py-2 rounded-lg card">Select All (filtered)</button>
+          <button id="btnClearSel" class="px-3 py-2 rounded-lg card">Clear</button>
+          <span class="muted text-sm" id="selCount"></span>
         </div>
-        <div class="flex gap-3">
-          <button id="btnSendText" class="px-4 py-2 btn rounded-xl">Send Text to Selected</button>
-          <span id="statusText" class="text-sm muted"></span>
+      </section>
+    </section>
+
+    <!-- Message View -->
+    <section id="viewMessage" class="space-y-4 hidden">
+      <div class="grid lg:grid-cols-2 gap-4">
+        <!-- Left: Template / Mode -->
+        <div class="card rounded-xl p-4">
+          <h2 class="font-semibold mb-2">Message Mode</h2>
+          <div class="grid md:grid-cols-2 gap-3">
+            <div>
+              <label class="text-sm block mb-1">Mode</label>
+              <select id="uiTemplate" class="w-full rounded-lg p-2">
+                <option value="perrow">Use per-row MESSAGE TYPE</option>
+                <option value="recruit">Recruit</option>
+                <option value="event1">Event 1 — Win Win</option>
+              </select>
+              <p class="text-xs muted mt-1">Controls the text used to build links below.</p>
+            </div>
+            <div>
+              <label class="text-sm block mb-1">After-send status</label>
+              <select id="afterSendStatusMsg" class="w-full rounded-lg p-2">
+                <option value="To Contact" >To Contact</option>
+<option value="Whatsapp" selected>Whatsapp</option>
+<option value="Reply" >Reply</option>
+<option value="Keen to meet" >Keen to meet</option>
+<option value="Cultivate" >Cultivate</option>
+<option value="Invite to events" >Invite to events</option>
+<option value="Not interested" >Not interested</option>
+<option value="No Whatsapp" >No Whatsapp</option>
+<option value="Unsubscribe" >Unsubscribe</option>
+<option value="Referred" >Referred</option>
+              </select>
+            </div>
+          </div>
+          <div class="mt-3">
+            <label class="text-sm block mb-1">Quick Text (used for Recruit or Event 1 modes)</label>
+            <textarea id="quickText" rows="6" class="w-full rounded-lg p-2">{{name}}, are you ready to close deals where everyone wins? Dawie, your Team Leader, is inviting you to an exclusive FREE Win-Win Negotiations Workshop at KW Explore on Nov 6. It's a full day of skills training (lunch included!) to elevate your game. Register here before it fills up: https://explore.yourkwoffice.com/winwin-negotiations</textarea>
+            <p class="text-xs muted mt-1">Placeholders: <code>{{name}}</code> <code>{{surname}}</code> <code>{{agency}}</code> <code>{{full_name}}</code></p>
+            <div class="flex gap-2 mt-2">
+              <button id="btnPresetRecruit" class="px-3 py-2 rounded-lg card">Use Recruit</button>
+              <button id="btnPresetEvent" class="px-3 py-2 rounded-lg card">Use Event 1</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: Generated links -->
+        <div class="card rounded-xl p-4">
+          <h2 class="font-semibold mb-2">WhatsApp Links</h2>
+          <p class="text-xs muted mb-2">Click <b>Sent</b> to open WhatsApp and mark the row with the after-send status.</p>
+          <div id="messageList" class="space-y-2 max-h-96 overflow-auto"></div>
         </div>
       </div>
     </section>
 
-    <!-- Queue -->
-    <section class="mt-6 card rounded-xl p-4">
-      <h2 class="font-semibold mb-2">Queue</h2>
-      <div id="queue" class="text-sm space-y-1 max-h-72 overflow-auto"></div>
-    </section>
   </div>
 
   <!-- Settings -->
@@ -151,11 +181,10 @@
       <button id="btnSaveSecrets" class="px-3 py-2 btn rounded-lg">Save URL</button>
       <button id="btnCloseSettings" class="px-3 py-2 rounded-lg" style="background:#374151">Close</button>
     </div>
-    <p class="text-xs muted mt-2">Note: Cloud API credentials are set in the backend (action=setsecrets).</p>
   </dialog>
 
   <script>
-    const WIRED_URL = "https://script.google.com/macros/s/AKfycbwgadpWje7SvdQU1JaWnE9QNKN_7KUHYclDU6ww_0RLtDd06MTLj6voudYdV3IGikqTDg/exec";
+    const WIRED_URL = "https://script.google.com/macros/s/AKfycbweG-1zbpL4Z_PJfeP2CRpYbYua4p_PFaV_vHRMvAcewZrzLxugVDk8xncwNd9-3E7h3w/exec";
     let WEB_APP_URL = localStorage.getItem('crm_webapp') || WIRED_URL;
 
     const EVENT_WINWIN = `{{name}}, are you ready to close deals where everyone wins? Dawie, your Team Leader, is inviting you to an exclusive FREE Win-Win Negotiations Workshop at KW Explore on Nov 6. It's a full day of skills training (lunch included!) to elevate your game. Register here before it fills up: https://explore.yourkwoffice.com/winwin-negotiations`;
@@ -164,6 +193,7 @@
 Dawie
 Team Leader at KW Explore
 https://thatrealestateguysa.kw.com/`;
+    const STATUS_OPTIONS = ["To Contact", "Whatsapp", "Reply", "Keen to meet", "Cultivate", "Invite to events", "Not interested", "No Whatsapp", "Unsubscribe", "Referred"];
 
     const state = { recipients: [], filtered: [], selected: new Set() };
     const el = id => document.getElementById(id);
@@ -177,12 +207,36 @@ https://thatrealestateguysa.kw.com/`;
         .replace(/\{\{full_name\}\}/g, [r.name, r.surname].filter(Boolean).join(' '));
     }
 
+    function buildTextFor(r) {
+      const mode = el('uiTemplate').value;
+      if (mode === 'perrow') {
+        const t = (r.messageType || '').trim();
+        if (t === 'Event 1 - Win Win') return personalize(EVENT_WINWIN, r);
+        return personalize(RECRUIT_DEFAULT, r);
+      }
+      if (mode === 'recruit') return personalize(RECRUIT_DEFAULT, r);
+      return personalize(EVENT_WINWIN, r);
+    }
+
+    function buildWaLink(r) {
+      const raw = String(r.phone || r.cell || '').trim();
+      const digits = raw.replace(/\D/g,'');
+      let num = digits;
+      if (digits.startsWith('0') && digits.length >= 10) num = '27' + digits.slice(-9);
+      else if (digits.startsWith('27') && digits.length >= 11) num = digits;
+      else if (!digits.startsWith('27') && digits.length >= 9) num = '27' + digits.slice(-9);
+      const text = buildTextFor(r);
+      return `https://wa.me/${num}?text=${encodeURIComponent(text)}`;
+    }
+
+    function setSelCount() { el('selCount').textContent = state.selected.size + ' selected'; }
+
     async function loadAll() {
       const url = new URL(WEB_APP_URL);
       url.searchParams.set('action', 'recipients');
       const res = await fetch(url.toString());
       const js = await res.json();
-      state.recipients = js.recipients || [];
+      state.recipients = (js.recipients || []).map((r) => r); // must include rowIndex
       await buildAgencies();
       applyFilter();
     }
@@ -209,6 +263,8 @@ https://thatrealestateguysa.kw.com/`;
         return okAgency && inText;
       });
       renderRows();
+      setSelCount();
+      if (!el('viewMessage').classList.contains('hidden')) renderMessageList();
     }
 
     function renderRows() {
@@ -230,133 +286,82 @@ https://thatrealestateguysa.kw.com/`;
       });
     }
 
-    function readImageAsBase64(file) {
-      return new Promise((resolve, reject) => {
-        const fr = new FileReader();
-        fr.onload = () => resolve(fr.result);
-        fr.onerror = reject;
-        fr.readAsDataURL(file);
-      });
-    }
-
-    function getSelectedRecipients() {
+    function getSelectedRows() {
       const indices = Array.from(state.selected);
-      return indices.map(i => {
-        const r = state.filtered[i];
-        return {
-          name: r.name, surname: r.surname, agency: r.agency, phone: r.cell,
-          messageType: r.messageType, status: r.status, notes: r.notes
-        };
+      return indices.map(i => state.filtered[i]).filter(Boolean);
+    }
+
+    async function bulkSetStatus() {
+      const rows = getSelectedRows();
+      if (rows.length === 0) return alert('Select at least one contact.');
+      const newStatus = el('bulkStatus').value;
+      const ids = rows.map(r => r.rowIndex);
+      const res = await fetch(WEB_APP_URL, {
+        method: 'POST',
+        headers: { 'Content-Type':'application/json' },
+        body: JSON.stringify({
+          action: 'bulkUpdateStatus',
+          payload: { rowIndices: ids, newStatus }
+        })
+      });
+      const js = await res.json();
+      alert(js.message || 'Updated.');
+      await loadAll();
+    }
+
+    async function markRowStatus(rowIndex, newStatus) {
+      const res = await fetch(WEB_APP_URL, {
+        method: 'POST',
+        headers: { 'Content-Type':'application/json' },
+        body: JSON.stringify({
+          action: 'updateSingleStatus',
+          payload: { rowIndex, newStatus }
+        })
+      });
+      return res.json();
+    }
+
+    function renderMessageList() {
+      const box = el('messageList'); box.innerHTML = '';
+      const rows = getSelectedRows();
+      if (rows.length === 0) { box.innerHTML = '<p class="muted text-sm">No recipients selected.</p>'; return; }
+      rows.forEach(r => {
+        const link = buildWaLink(r);
+        const item = document.createElement('div');
+        item.className = 'p-2 rounded-lg chip flex items-center justify-between gap-3';
+        const left = document.createElement('div');
+        left.innerHTML = `<div class="font-medium">${fmtName(r)} <span class="muted">(${r.cell||''})</span></div>
+                          <div class="text-xs muted">${(r.messageType||'Recruit')}</div>`;
+        const right = document.createElement('div');
+        right.className = 'flex items-center gap-2';
+        const a = document.createElement('a');
+        a.className='sent-link px-3 py-1 rounded-lg card';
+        a.textContent='Sent';
+        a.target='_blank';
+        a.href=link;
+        a.addEventListener('click', async () => {
+          const st = (document.getElementById('afterSendStatusMsg').value || 'Whatsapp');
+          try { await markRowStatus(r.rowIndex, st); } catch (e) {}
+        });
+        right.appendChild(a);
+        item.appendChild(left);
+        item.appendChild(right);
+        box.appendChild(item);
       });
     }
 
-    async function sendImages() {
-      const recipients = getSelectedRecipients();
-      if (recipients.length === 0) return alert('Select at least one contact.');
-      const caption = el('caption').value || '';
-      const useCloud = el('useCloudApiImg').checked;
-
-      if (useCloud) {
-        const file = el('imageFile').files[0];
-        if (!file) return alert('Choose an image.');
-        const base64 = await readImageAsBase64(file);
-        el('statusImg').textContent = 'Sending...';
-        const res = await fetch(WEB_APP_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            action: 'bulksendimage',
-            useCloudApi: true,
-            recipients,
-            caption,
-            imageBase64: base64,
-            imageMime: file.type
-          })
-        });
-        const json = await res.json();
-        renderQueue(json.results || []);
-        el('statusImg').textContent = json.ok ? 'Done' : (json.error || 'Error');
-      } else {
-        recipients.forEach(r => {
-          const to = (r.phone || '').replace(/[^\d+]/g,'').replace(/^\+/, '');
-          const url = `https://wa.me/${to}?text=${encodeURIComponent(personalize(caption, r))}`;
-          window.open(url, '_blank');
-        });
-        el('statusImg').textContent = 'Opened device links. Attach the image manually.';
-      }
+    // Tabs
+    function showView(id) {
+      el('viewContacts').classList.add('hidden');
+      el('viewMessage').classList.add('hidden');
+      el(id).classList.remove('hidden');
+      el('tabContacts').classList.remove('active');
+      el('tabMessage').classList.remove('active');
+      if (id==='viewContacts') el('tabContacts').classList.add('active');
+      if (id==='viewMessage') { el('tabMessage').classList.add('active'); renderMessageList(); }
     }
 
-    async function sendTexts() {
-      const recipients = getSelectedRecipients();
-      if (recipients.length === 0) return alert('Select at least one contact.');
-      const useCloud = el('useCloudApiText').checked;
-      const mode = el('uiTemplate').value;
-      el('statusText').textContent = 'Sending...';
-
-      if (mode === 'perrow') {
-        const res = await fetch(WEB_APP_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            action: 'bulksendtextbytype',
-            useCloudApi: useCloud,
-            recipients
-          })
-        });
-        const json = await res.json();
-        renderQueue(json.results || []);
-        el('statusText').textContent = json.ok ? 'Done' : (json.error || 'Error');
-      } else {
-        let tmpl = el('quickText').value || '';
-        if (mode === 'recruit') tmpl = RECRUIT_DEFAULT;
-        if (mode === 'event1') tmpl = EVENT_WINWIN;
-        if (useCloud) {
-          const res = await fetch(WEB_APP_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              action: 'bulksendtext',
-              useCloudApi: true,
-              textTemplate: tmpl,
-              recipients
-            })
-          });
-          const json = await res.json();
-          renderQueue(json.results || []);
-          el('statusText').textContent = json.ok ? 'Done' : (json.error || 'Error');
-        } else {
-          const results = [];
-          for (const r of recipients) {
-            const to = (r.phone || '').replace(/[^\d+]/g,'').replace(/^\+/, '');
-            const url = `https://wa.me/${to}?text=${encodeURIComponent(personalize(tmpl, r))}`;
-            window.open(url, '_blank');
-            results.push({ phone: '+'+to, status:'LINK_TEXT', link:url });
-          }
-          renderQueue(results);
-          el('statusText').textContent = 'Device links opened.';
-        }
-      }
-    }
-
-    function renderQueue(results) {
-      const box = el('queue'); box.innerHTML = '';
-      (results || []).forEach(r => {
-        const div = document.createElement('div');
-        div.className = 'p-2 rounded-lg chip';
-        div.textContent = `${r.phone} — ${r.status}${r.messageId ? ' ('+r.messageId+')' : ''}${r.link ? ' — link opened' : ''}${r.error ? ' — '+r.error : ''}`;
-        box.appendChild(div);
-      });
-    }
-
-    // UI events
-    const elTpl = el('uiTemplate');
-    elTpl.onchange = () => {
-      const v = elTpl.value;
-      if (v === 'recruit') el('quickText').value = RECRUIT_DEFAULT;
-      else if (v === 'event1') el('quickText').value = EVENT_WINWIN;
-      // 'perrow' keeps whatever is typed; backend will ignore this field.
-    };
-
+    // Events
     el('btnSettings').onclick = () => el('settingsDlg').showModal();
     el('btnCloseSettings').onclick = () => el('settingsDlg').close();
     el('btnSaveSecrets').onclick = () => {
@@ -365,23 +370,24 @@ https://thatrealestateguysa.kw.com/`;
       else { WEB_APP_URL = WIRED_URL; localStorage.removeItem('crm_webapp'); alert('Using wired URL.'); }
     };
     el('btnReload').onclick = loadAll;
-    el('btnSelectAll').onclick = () => { state.selected = new Set(state.filtered.map((_,i)=>i)); renderRows(); };
-    el('btnClearSel').onclick = () => { state.selected.clear(); renderRows(); };
-    el('checkAll').onchange = (e) => { if (e.target.checked) state.selected = new Set(state.filtered.map((_,i)=>i)); else state.selected.clear(); renderRows(); };
+    el('btnSelectAll').onclick = () => { state.selected = new Set(state.filtered.map((_,i)=>i)); renderRows(); setSelCount(); if (!el('viewMessage').classList.contains('hidden')) renderMessageList(); };
+    el('btnClearSel').onclick = () => { state.selected.clear(); renderRows(); setSelCount(); if (!el('viewMessage').classList.contains('hidden')) renderMessageList(); };
+    el('checkAll').onchange = (e) => { if (e.target.checked) state.selected = new Set(state.filtered.map((_,i)=>i)); else state.selected.clear(); renderRows(); setSelCount(); if (!el('viewMessage').classList.contains('hidden')) renderMessageList(); };
     el('rows').addEventListener('change', (e) => {
       const idx = Number(e.target.dataset.id);
       if (!Number.isNaN(idx)) { if (e.target.checked) state.selected.add(idx); else state.selected.delete(idx); }
+      setSelCount();
     });
     el('agencyFilter').onchange = applyFilter;
     el('searchBox').oninput = applyFilter;
-    el('imageFile').onchange = () => {
-      const f = el('imageFile').files[0];
-      if (!f) return el('preview').classList.add('hidden');
-      el('preview').src = URL.createObjectURL(f);
-      el('preview').classList.remove('hidden');
-    };
-    el('btnSendImage').onclick = sendImages;
-    el('btnSendText').onclick = sendTexts;
+    el('btnBulkStatus').onclick = bulkSetStatus;
+    el('btnPresetRecruit').onclick = () => { el('uiTemplate').value='recruit'; el('quickText').value = RECRUIT_DEFAULT; renderMessageList(); };
+    el('btnPresetEvent').onclick   = () => { el('uiTemplate').value='event1';  el('quickText').value = EVENT_WINWIN;   renderMessageList(); };
+
+    el('tabContacts').onclick = () => showView('viewContacts');
+    el('tabMessage').onclick  = () => showView('viewMessage');
+    el('uiTemplate').onchange = renderMessageList;
+    el('quickText').oninput = renderMessageList;
 
     loadAll();
   </script>
