@@ -3,393 +3,129 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Cold Recruit Machine — WhatsApp Sender</title>
-  <link rel="icon" href="./assets/icon.png">
-  <link rel="icon" type="image/x-icon" href="./assets/favicon.ico">
+  <title>KW Explore — WhatsApp Sender (Simple)</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <meta name="theme-color" content="#111827">
+  <link rel="icon" href="./assets/icon.png">
   <style>
-    html, body { background:#0b0b0b; color:#e5e7eb; }
+    html,body { background:#0b0b0b; color:#e5e7eb; }
     .card { background:#1f2937; }
+    select, input { background:#0b0b0b; }
+    a.btn, button.btn { background:#e11d48; color:white; }
     .muted { color:#9ca3af; }
-    .btn { background:#e11d48; }
-    .btn:hover { opacity:.95 }
-    .chip { background:#111827; }
-    code { background:#111827; padding:2px 6px; border-radius:6px; }
-    select, textarea, input { background:#0b0b0b; }
-    .tab-btn { background:#111827; }
-    .tab-btn.active { background:#e11d48; }
-    a.sent-link { text-decoration: underline; }
   </style>
 </head>
 <body class="min-h-screen">
-  <div class="max-w-7xl mx-auto p-4">
-    <header class="mb-4 flex items-center justify-between gap-3">
+  <div class="max-w-6xl mx-auto p-4 space-y-4">
+    <header class="flex items-center justify-between">
       <div class="flex items-center gap-3">
-        <img src="./assets/logo.png" alt="logo" class="h-10 w-auto rounded-lg" />
-        <h1 class="text-2xl font-semibold">Cold Recruit Machine — WhatsApp Sender</h1>
+        <img src="./assets/logo.png" alt="KW Explore" class="h-10 w-auto rounded-md" />
+        <h1 class="text-xl font-semibold">WhatsApp Sender — Simple</h1>
       </div>
-      <div class="flex gap-2">
-        <button id="btnReload" class="px-3 py-2 rounded-lg card">Reload</button>
-        <button id="btnSettings" class="px-3 py-2 rounded-lg card">Settings</button>
+      <div class="flex items-center gap-2">
+        <label class="text-sm">After-send status</label>
+        <select id="afterStatus" class="rounded-md p-2">
+          <option  value="To Contact">To Contact</option><option selected value="Whatsapp">Whatsapp</option><option  value="Reply">Reply</option><option  value="Keen to meet">Keen to meet</option><option  value="Cultivate">Cultivate</option><option  value="Invite to events">Invite to events</option><option  value="Not interested">Not interested</option><option  value="No Whatsapp">No Whatsapp</option><option  value="Unsubscribe">Unsubscribe</option><option  value="Referred">Referred</option>
+        </select>
+        <button id="btnRefresh" class="btn px-3 py-2 rounded-md">Refresh</button>
       </div>
     </header>
 
-    <!-- Tabs -->
-    <nav class="flex gap-2 mb-4">
-      <button id="tabContacts" class="tab-btn px-3 py-2 rounded-lg active">Contacts</button>
-      <button id="tabMessage" class="tab-btn px-3 py-2 rounded-lg">Message</button>
-    </nav>
-
-    <!-- Contacts View -->
-    <section id="viewContacts" class="space-y-4">
-      <!-- Controls row -->
-      <div class="grid md:grid-cols-4 gap-3">
-        <div class="card rounded-xl p-3">
-          <label class="text-sm">Filter by Agency</label>
-          <select id="agencyFilter" multiple class="w-full rounded-lg p-2 h-28 card"></select>
-          <p class="text-xs muted mt-1">Hold Ctrl/Cmd to multi-select.</p>
-        </div>
-        <div class="card rounded-xl p-3">
-          <label class="text-sm">Search name or number</label>
-          <input id="searchBox" class="w-full rounded-lg p-2 card" placeholder="Type to filter..." />
-        </div>
-        <div class="card rounded-xl p-3">
-          <label class="text-sm block mb-1">Bulk set status</label>
-          <div class="flex gap-2">
-            <select id="bulkStatus" class="w-full rounded-lg p-2">
-              <option value="To Contact">To Contact</option>
-<option value="Whatsapp">Whatsapp</option>
-<option value="Reply">Reply</option>
-<option value="Keen to meet">Keen to meet</option>
-<option value="Cultivate">Cultivate</option>
-<option value="Invite to events">Invite to events</option>
-<option value="Not interested">Not interested</option>
-<option value="No Whatsapp">No Whatsapp</option>
-<option value="Unsubscribe">Unsubscribe</option>
-<option value="Referred">Referred</option>
-            </select>
-            <button id="btnBulkStatus" class="px-3 py-2 btn rounded-lg">Update Selected</button>
-          </div>
-          <p class="text-xs muted mt-1">Applies to checked rows.</p>
-        </div>
-        <div class="card rounded-xl p-3">
-          <label class="text-sm block mb-1">After-send status</label>
-          <select id="afterSendStatus" class="w-full rounded-lg p-2">
-            <option value="To Contact" >To Contact</option>
-<option value="Whatsapp" selected>Whatsapp</option>
-<option value="Reply" >Reply</option>
-<option value="Keen to meet" >Keen to meet</option>
-<option value="Cultivate" >Cultivate</option>
-<option value="Invite to events" >Invite to events</option>
-<option value="Not interested" >Not interested</option>
-<option value="No Whatsapp" >No Whatsapp</option>
-<option value="Unsubscribe" >Unsubscribe</option>
-<option value="Referred" >Referred</option>
-          </select>
-          <p class="text-xs muted mt-1">Used when you click <b>Sent</b> in the Message tab.</p>
-        </div>
+    <section class="card rounded-xl p-3">
+      <div class="overflow-auto">
+        <table class="w-full text-sm">
+          <thead class="text-xs uppercase muted">
+            <tr class="border-b border-neutral-700">
+              <th class="p-2 text-left">Name</th>
+              <th class="p-2 text-left">Cell</th>
+              <th class="p-2 text-left">Message Type</th>
+              <th class="p-2 text-left">WhatsApp</th>
+              <th class="p-2 text-left">Status</th>
+            </tr>
+          </thead>
+          <tbody id="rows"></tbody>
+        </table>
       </div>
-
-      <!-- Table -->
-      <section class="card rounded-xl p-3">
-        <div class="overflow-auto">
-          <table class="w-full text-sm">
-            <thead class="muted">
-              <tr class="border-b border-neutral-700">
-                <th class="p-2"><input type="checkbox" id="checkAll"/></th>
-                <th class="p-2">Status</th>
-                <th class="p-2">Message Type</th>
-                <th class="p-2">Name</th>
-                <th class="p-2">Surname</th>
-                <th class="p-2">Cell Nr</th>
-                <th class="p-2">Agency</th>
-                <th class="p-2">Notes</th>
-              </tr>
-            </thead>
-            <tbody id="rows"></tbody>
-          </table>
-        </div>
-        <div class="mt-3 flex items-center gap-2">
-          <button id="btnSelectAll" class="px-3 py-2 rounded-lg card">Select All (filtered)</button>
-          <button id="btnClearSel" class="px-3 py-2 rounded-lg card">Clear</button>
-          <span class="muted text-sm" id="selCount"></span>
-        </div>
-      </section>
+      <p class="muted text-xs mt-2">Tip: Change the Message Type first, then click Send.</p>
     </section>
-
-    <!-- Message View -->
-    <section id="viewMessage" class="space-y-4 hidden">
-      <div class="grid lg:grid-cols-2 gap-4">
-        <!-- Left: Template / Mode -->
-        <div class="card rounded-xl p-4">
-          <h2 class="font-semibold mb-2">Message Mode</h2>
-          <div class="grid md:grid-cols-2 gap-3">
-            <div>
-              <label class="text-sm block mb-1">Mode</label>
-              <select id="uiTemplate" class="w-full rounded-lg p-2">
-                <option value="perrow">Use per-row MESSAGE TYPE</option>
-                <option value="recruit">Recruit</option>
-                <option value="event1">Event 1 — Win Win</option>
-              </select>
-              <p class="text-xs muted mt-1">Controls the text used to build links below.</p>
-            </div>
-            <div>
-              <label class="text-sm block mb-1">After-send status</label>
-              <select id="afterSendStatusMsg" class="w-full rounded-lg p-2">
-                <option value="To Contact" >To Contact</option>
-<option value="Whatsapp" selected>Whatsapp</option>
-<option value="Reply" >Reply</option>
-<option value="Keen to meet" >Keen to meet</option>
-<option value="Cultivate" >Cultivate</option>
-<option value="Invite to events" >Invite to events</option>
-<option value="Not interested" >Not interested</option>
-<option value="No Whatsapp" >No Whatsapp</option>
-<option value="Unsubscribe" >Unsubscribe</option>
-<option value="Referred" >Referred</option>
-              </select>
-            </div>
-          </div>
-          <div class="mt-3">
-            <label class="text-sm block mb-1">Quick Text (used for Recruit or Event 1 modes)</label>
-            <textarea id="quickText" rows="6" class="w-full rounded-lg p-2">{{name}}, are you ready to close deals where everyone wins? Dawie, your Team Leader, is inviting you to an exclusive FREE Win-Win Negotiations Workshop at KW Explore on Nov 6. It's a full day of skills training (lunch included!) to elevate your game. Register here before it fills up: https://explore.yourkwoffice.com/winwin-negotiations</textarea>
-            <p class="text-xs muted mt-1">Placeholders: <code>{{name}}</code> <code>{{surname}}</code> <code>{{agency}}</code> <code>{{full_name}}</code></p>
-            <div class="flex gap-2 mt-2">
-              <button id="btnPresetRecruit" class="px-3 py-2 rounded-lg card">Use Recruit</button>
-              <button id="btnPresetEvent" class="px-3 py-2 rounded-lg card">Use Event 1</button>
-            </div>
-          </div>
-        </div>
-
-        <!-- Right: Generated links -->
-        <div class="card rounded-xl p-4">
-          <h2 class="font-semibold mb-2">WhatsApp Links</h2>
-          <p class="text-xs muted mb-2">Click <b>Sent</b> to open WhatsApp and mark the row with the after-send status.</p>
-          <div id="messageList" class="space-y-2 max-h-96 overflow-auto"></div>
-        </div>
-      </div>
-    </section>
-
   </div>
 
-  <!-- Settings -->
-  <dialog id="settingsDlg" class="rounded-xl p-4 card w-[32rem]">
-    <h3 class="font-semibold text-lg mb-3">Settings</h3>
-    <label class="block text-sm mb-1">Override Web App URL</label>
-    <input id="webAppUrl" class="w-full rounded-lg p-2 mb-4" placeholder="leave blank to use wired URL">
-    <div class="flex justify-end gap-2">
-      <button id="btnSaveSecrets" class="px-3 py-2 btn rounded-lg">Save URL</button>
-      <button id="btnCloseSettings" class="px-3 py-2 rounded-lg" style="background:#374151">Close</button>
-    </div>
-  </dialog>
+<script>
+  const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxIJc_p_lX9SdQGAcinR_HjLcbey1l9eum3vMM9_bmHz1rrFwa0R_53FlfXLvK2jqPBsQ/exec";
+  const MESSAGE_TYPES = ["Recruit", "Event 1 - Win Win"];
 
-  <script>
-    const WIRED_URL = "https://script.google.com/macros/s/AKfycbweG-1zbpL4Z_PJfeP2CRpYbYua4p_PFaV_vHRMvAcewZrzLxugVDk8xncwNd9-3E7h3w/exec";
-    let WEB_APP_URL = localStorage.getItem('crm_webapp') || WIRED_URL;
+  const el = id => document.getElementById(id);
+  let data = [];
 
-    const EVENT_WINWIN = `{{name}}, are you ready to close deals where everyone wins? Dawie, your Team Leader, is inviting you to an exclusive FREE Win-Win Negotiations Workshop at KW Explore on Nov 6. It's a full day of skills training (lunch included!) to elevate your game. Register here before it fills up: https://explore.yourkwoffice.com/winwin-negotiations`;
-    const RECRUIT_DEFAULT = `Hi {{name}}, Dawie here from KW Explore. I’m connecting with a few agents to compare what’s working and to share how we structure costs, coaching and lead gen so more of your commission stays with you. No pitch, just a short, numbers based business conversation to see if it’s useful. If you’re open, reply YES and we’ll take it from there. If not, reply STOP and I won’t follow up.
+  async function fetchRecipients() {
+    const url = new URL(WEB_APP_URL);
+    url.searchParams.set('action','recipients');
+    const res = await fetch(url.toString());
+    const js = await res.json();
+    data = js.recipients || [];
+    render();
+  }
 
-Dawie
-Team Leader at KW Explore
-https://thatrealestateguysa.kw.com/`;
-    const STATUS_OPTIONS = ["To Contact", "Whatsapp", "Reply", "Keen to meet", "Cultivate", "Invite to events", "Not interested", "No Whatsapp", "Unsubscribe", "Referred"];
-
-    const state = { recipients: [], filtered: [], selected: new Set() };
-    const el = id => document.getElementById(id);
-    const fmtName = r => [r.name, r.surname].filter(Boolean).join(' ');
-
-    function personalize(text, r) {
-      return (text || '')
-        .replace(/\{\{name\}\}/g, r.name || '')
-        .replace(/\{\{surname\}\}/g, r.surname || '')
-        .replace(/\{\{agency\}\}/g, r.agency || '')
-        .replace(/\{\{full_name\}\}/g, [r.name, r.surname].filter(Boolean).join(' '));
-    }
-
-    function buildTextFor(r) {
-      const mode = el('uiTemplate').value;
-      if (mode === 'perrow') {
-        const t = (r.messageType || '').trim();
-        if (t === 'Event 1 - Win Win') return personalize(EVENT_WINWIN, r);
-        return personalize(RECRUIT_DEFAULT, r);
-      }
-      if (mode === 'recruit') return personalize(RECRUIT_DEFAULT, r);
-      return personalize(EVENT_WINWIN, r);
-    }
-
-    function buildWaLink(r) {
-      const raw = String(r.phone || r.cell || '').trim();
-      const digits = raw.replace(/\D/g,'');
-      let num = digits;
-      if (digits.startsWith('0') && digits.length >= 10) num = '27' + digits.slice(-9);
-      else if (digits.startsWith('27') && digits.length >= 11) num = digits;
-      else if (!digits.startsWith('27') && digits.length >= 9) num = '27' + digits.slice(-9);
-      const text = buildTextFor(r);
-      return `https://wa.me/${num}?text=${encodeURIComponent(text)}`;
-    }
-
-    function setSelCount() { el('selCount').textContent = state.selected.size + ' selected'; }
-
-    async function loadAll() {
-      const url = new URL(WEB_APP_URL);
-      url.searchParams.set('action', 'recipients');
-      const res = await fetch(url.toString());
-      const js = await res.json();
-      state.recipients = (js.recipients || []).map((r) => r); // must include rowIndex
-      await buildAgencies();
-      applyFilter();
-    }
-    async function buildAgencies() {
-      const url = new URL(WEB_APP_URL);
-      url.searchParams.set('action', 'agencies');
-      const res = await fetch(url.toString());
-      const { agencies } = await res.json();
-      const sel = el('agencyFilter');
-      sel.innerHTML = '';
-      (agencies || []).forEach(a => {
-        const opt = document.createElement('option');
-        opt.value = a; opt.textContent = a;
-        sel.appendChild(opt);
-      });
-    }
-
-    function applyFilter() {
-      const sel = Array.from(el('agencyFilter').selectedOptions).map(o=>o.value);
-      const q = (el('searchBox').value || '').trim().toLowerCase();
-      state.filtered = state.recipients.filter(r => {
-        const okAgency = sel.length ? sel.includes(r.agency) : true;
-        const inText = (fmtName(r)+' '+(r.cell||'')+' '+(r.agency||'')).toLowerCase().includes(q);
-        return okAgency && inText;
-      });
-      renderRows();
-      setSelCount();
-      if (!el('viewMessage').classList.contains('hidden')) renderMessageList();
-    }
-
-    function renderRows() {
-      const tb = el('rows'); tb.innerHTML = '';
-      state.filtered.forEach((r, idx) => {
-        const tr = document.createElement('tr');
-        tr.className = 'border-b border-neutral-700';
-        tr.innerHTML = `
-          <td class="p-2"><input type="checkbox" data-id="${idx}" ${state.selected.has(idx)?'checked':''}></td>
-          <td class="p-2">${r.status || ''}</td>
-          <td class="p-2">${r.messageType || ''}</td>
-          <td class="p-2">${r.name || ''}</td>
-          <td class="p-2">${r.surname || ''}</td>
-          <td class="p-2">${r.cell || ''}</td>
-          <td class="p-2">${r.agency || ''}</td>
-          <td class="p-2">${r.notes || ''}</td>
-        `;
-        tb.appendChild(tr);
-      });
-    }
-
-    function getSelectedRows() {
-      const indices = Array.from(state.selected);
-      return indices.map(i => state.filtered[i]).filter(Boolean);
-    }
-
-    async function bulkSetStatus() {
-      const rows = getSelectedRows();
-      if (rows.length === 0) return alert('Select at least one contact.');
-      const newStatus = el('bulkStatus').value;
-      const ids = rows.map(r => r.rowIndex);
-      const res = await fetch(WEB_APP_URL, {
-        method: 'POST',
-        headers: { 'Content-Type':'application/json' },
-        body: JSON.stringify({
-          action: 'bulkUpdateStatus',
-          payload: { rowIndices: ids, newStatus }
-        })
-      });
-      const js = await res.json();
-      alert(js.message || 'Updated.');
-      await loadAll();
-    }
-
-    async function markRowStatus(rowIndex, newStatus) {
-      const res = await fetch(WEB_APP_URL, {
-        method: 'POST',
-        headers: { 'Content-Type':'application/json' },
-        body: JSON.stringify({
-          action: 'updateSingleStatus',
-          payload: { rowIndex, newStatus }
-        })
-      });
-      return res.json();
-    }
-
-    function renderMessageList() {
-      const box = el('messageList'); box.innerHTML = '';
-      const rows = getSelectedRows();
-      if (rows.length === 0) { box.innerHTML = '<p class="muted text-sm">No recipients selected.</p>'; return; }
-      rows.forEach(r => {
-        const link = buildWaLink(r);
-        const item = document.createElement('div');
-        item.className = 'p-2 rounded-lg chip flex items-center justify-between gap-3';
-        const left = document.createElement('div');
-        left.innerHTML = `<div class="font-medium">${fmtName(r)} <span class="muted">(${r.cell||''})</span></div>
-                          <div class="text-xs muted">${(r.messageType||'Recruit')}</div>`;
-        const right = document.createElement('div');
-        right.className = 'flex items-center gap-2';
-        const a = document.createElement('a');
-        a.className='sent-link px-3 py-1 rounded-lg card';
-        a.textContent='Sent';
-        a.target='_blank';
-        a.href=link;
-        a.addEventListener('click', async () => {
-          const st = (document.getElementById('afterSendStatusMsg').value || 'Whatsapp');
-          try { await markRowStatus(r.rowIndex, st); } catch (e) {}
-        });
-        right.appendChild(a);
-        item.appendChild(left);
-        item.appendChild(right);
-        box.appendChild(item);
-      });
-    }
-
-    // Tabs
-    function showView(id) {
-      el('viewContacts').classList.add('hidden');
-      el('viewMessage').classList.add('hidden');
-      el(id).classList.remove('hidden');
-      el('tabContacts').classList.remove('active');
-      el('tabMessage').classList.remove('active');
-      if (id==='viewContacts') el('tabContacts').classList.add('active');
-      if (id==='viewMessage') { el('tabMessage').classList.add('active'); renderMessageList(); }
-    }
-
-    // Events
-    el('btnSettings').onclick = () => el('settingsDlg').showModal();
-    el('btnCloseSettings').onclick = () => el('settingsDlg').close();
-    el('btnSaveSecrets').onclick = () => {
-      const u = el('webAppUrl').value.trim();
-      if (u) { WEB_APP_URL = u; localStorage.setItem('crm_webapp', u); alert('Saved. Reload to apply.'); }
-      else { WEB_APP_URL = WIRED_URL; localStorage.removeItem('crm_webapp'); alert('Using wired URL.'); }
-    };
-    el('btnReload').onclick = loadAll;
-    el('btnSelectAll').onclick = () => { state.selected = new Set(state.filtered.map((_,i)=>i)); renderRows(); setSelCount(); if (!el('viewMessage').classList.contains('hidden')) renderMessageList(); };
-    el('btnClearSel').onclick = () => { state.selected.clear(); renderRows(); setSelCount(); if (!el('viewMessage').classList.contains('hidden')) renderMessageList(); };
-    el('checkAll').onchange = (e) => { if (e.target.checked) state.selected = new Set(state.filtered.map((_,i)=>i)); else state.selected.clear(); renderRows(); setSelCount(); if (!el('viewMessage').classList.contains('hidden')) renderMessageList(); };
-    el('rows').addEventListener('change', (e) => {
-      const idx = Number(e.target.dataset.id);
-      if (!Number.isNaN(idx)) { if (e.target.checked) state.selected.add(idx); else state.selected.delete(idx); }
-      setSelCount();
+  async function setMessageType(rowIndex, newType) {
+    await fetch(WEB_APP_URL, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        action: 'updateMessageType',
+        payload: { rowIndex, newType }
+      })
     });
-    el('agencyFilter').onchange = applyFilter;
-    el('searchBox').oninput = applyFilter;
-    el('btnBulkStatus').onclick = bulkSetStatus;
-    el('btnPresetRecruit').onclick = () => { el('uiTemplate').value='recruit'; el('quickText').value = RECRUIT_DEFAULT; renderMessageList(); };
-    el('btnPresetEvent').onclick   = () => { el('uiTemplate').value='event1';  el('quickText').value = EVENT_WINWIN;   renderMessageList(); };
+  }
 
-    el('tabContacts').onclick = () => showView('viewContacts');
-    el('tabMessage').onclick  = () => showView('viewMessage');
-    el('uiTemplate').onchange = renderMessageList;
-    el('quickText').oninput = renderMessageList;
+  async function setStatus(rowIndex, newStatus) {
+    await fetch(WEB_APP_URL, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        action: 'updateSingleStatus',
+        payload: { rowIndex, newStatus }
+      })
+    });
+  }
 
-    loadAll();
-  </script>
+  function typeSelectHtml(current) {
+    const opts = MESSAGE_TYPES.map(t => `<option value="${t}" ${t===current?'selected':''}>${t}</option>`).join('');
+    return `<select class="rounded-md p-1 typeSel">${opts}</select>`;
+  }
+
+  function render() {
+    const tb = el('rows'); tb.innerHTML = '';
+    data.forEach((r, idx) => {
+      const tr = document.createElement('tr');
+      tr.className = 'border-b border-neutral-800';
+      const sendHtml = r.waLink ? `<a class="btn px-3 py-1 rounded-md" target="_blank" href="${r.waLink}">Send</a>` : '<span class="text-xs muted">No link</span>';
+      tr.innerHTML = `
+        <td class="p-2">${[r.name, r.surname].filter(Boolean).join(' ')}</td>
+        <td class="p-2">${r.cell || ''}</td>
+        <td class="p-2">${typeSelectHtml(r.messageType || 'Recruit')}</td>
+        <td class="p-2">${sendHtml}</td>
+        <td class="p-2">${r.status || ''}</td>
+      `;
+      const sel = tr.querySelector('.typeSel');
+      sel.addEventListener('change', async (e) => {
+        const newType = e.target.value;
+        sel.disabled = true;
+        await setMessageType(r.rowIndex, newType);
+        await fetchRecipients(); // pull the rebuilt WA_LINK/WA_MSG
+      });
+      const sendA = tr.querySelector('a.btn');
+      if (sendA) {
+        sendA.addEventListener('click', async () => {
+          const st = el('afterStatus').value || 'Whatsapp';
+          try { await setStatus(r.rowIndex, st); } catch (e) {}
+        });
+      }
+      tb.appendChild(tr);
+    });
+  }
+
+  el('btnRefresh').onclick = fetchRecipients;
+  fetchRecipients();
+</script>
 </body>
 </html>

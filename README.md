@@ -1,10 +1,12 @@
 
-# Cold Recruit Machine — WhatsApp Sender (Frontend v6)
-Wired URL:
-https://script.google.com/macros/s/AKfycbweG-1zbpL4Z_PJfeP2CRpYbYua4p_PFaV_vHRMvAcewZrzLxugVDk8xncwNd9-3E7h3w/exec
+# KW Explore — WhatsApp Sender (Simple v7b)
 
-- Tabs: Contacts / Message
-- Bulk Status update on Contacts tab
-- Message tab: per-recipient **Sent** links that open WhatsApp and mark status (default "Whatsapp", configurable)
-- Modes: Per-row MESSAGE TYPE / Recruit / Event 1 — Win Win
-- Assets included: logo.png, icon.png, favicon.ico
+**Wired URL:**  
+https://script.google.com/macros/s/AKfycbxIJc_p_lX9SdQGAcinR_HjLcbey1l9eum3vMM9_bmHz1rrFwa0R_53FlfXLvK2jqPBsQ/exec
+
+## How it works
+- Change **Message Type** (Recruit / Event 1 - Win Win) — the frontend calls `updateMessageType` and the backend rebuilds **WHATSAPP MESSAGE** and **WHATSAPP LINK**.
+- Click **Send** — opens WhatsApp using the backend **WHATSAPP LINK** and sets the Status to your chosen **After-send status** (default "Whatsapp").
+- Use **Refresh** any time to pull latest sheet values.
+
+This matches the full backend I shared. If your current backend doesn't yet include `updateMessageType` and `waLink/waMessage` in `listRecipients_()`, let me know and I’ll reattach it.
