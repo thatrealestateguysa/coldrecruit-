@@ -1,67 +1,75 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Recruit 101</title>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Recruit 101 — Frontend v15</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <meta name="theme-color" content="#0b0b0b">
   <link rel="icon" href="./assets/icon.png">
   <style>
     html,body { background:#0b0b0b; color:#e5e7eb; }
-    .card { background:#111827; border:1px solid #1f2937; }
-    select, input { background:#0b0b0b; border:1px solid #374151; }
-    a.btn, button.btn { background:#e11d48; color:white; }
+    .card { background:#0f172a; border:1px solid #1f2937; }
     .muted { color:#9ca3af; }
-    .chip { background:#1f2937; border:1px solid #374151; padding:6px 10px; border-radius:9999px; cursor:pointer; user-select:none; }
-    .chip.active { background:#e11d48; color:white; border-color:#e11d48; }
-    .btn-lite { background:#374151; color:#e5e7eb; }
+    .btn { background:#e11d48; color:white; }
+    .btn-lite { background:#334155; color:#e5e7eb; }
+    .tab { 
+      display:flex; align-items:center; gap:.5rem;
+      background:#111827; border:1px solid #374151; 
+      padding:.45rem .75rem; border-radius:9999px; 
+      cursor:pointer; white-space:nowrap;
+      transition:all .12s ease-in-out;
+    }
+    .tab:hover { border-color:#64748b; }
+    .tab.active { background:#e11d48; border-color:#e11d48; color:#fff; }
     .badge { background:#374151; color:#e5e7eb; padding:2px 8px; border-radius:9999px; font-size:12px; }
-    table th, table td { white-space: nowrap; }
+    table th, table td { white-space:nowrap; }
     .pill { padding:2px 8px; border-radius:9999px; border:1px solid #374151; }
   </style>
 </head>
 <body class="min-h-screen">
   <div class="max-w-7xl mx-auto p-4 space-y-4">
-
     <header class="flex items-center justify-between">
       <div class="flex items-center gap-3">
-        <img src="./assets/logo.png" alt="Recruit 101" class="h-10 w-auto rounded-md" />
+        <img src="./assets/logo.png" class="h-10 w-auto rounded-md" onerror="this.style.display='none'"/>
         <div>
           <h1 class="text-xl font-semibold">Recruit 101</h1>
-          <div class="text-xs muted">v12.3</div>
+          <div class="text-xs muted" id="envInfo">v15</div>
         </div>
       </div>
       <div class="flex items-center gap-2">
         <label class="text-sm">After-send status</label>
-        <select id="afterStatus" class="rounded-md p-2"></select>
-        <button id="btnRefresh" class="btn px-3 py-2 rounded-md">Refresh</button>
+        <select id="afterStatus" class="rounded p-2"></select>
+        <button id="btnRefresh" class="btn px-3 py-2 rounded">Refresh</button>
       </div>
     </header>
 
-    <!-- Totals + status chips -->
+    <!-- Status Tabs / Totals -->
     <section class="card rounded-xl p-3 space-y-3">
       <div class="flex items-center gap-3 flex-wrap">
         <div class="pill text-xs">Total: <span id="totalCount">0</span></div>
         <div class="pill text-xs">Filtered: <span id="resultCount">0</span></div>
         <div id="statusMsg" class="text-xs muted"></div>
       </div>
-      <div id="statusBar" class="flex gap-2 overflow-x-auto pb-1"></div>
 
-      <!-- Search Row -->
+      <!-- Tabs container -->
+      <div id="tabsWrap" class="flex gap-2 overflow-x-auto pb-1"></div>
+
+      <!-- Search & explicit filter -->
       <div class="grid md:grid-cols-3 gap-2 items-end">
-        <div class="col-span-2">
+        <div class="md:col-span-2">
           <label class="text-sm block mb-1">Search (Name or Agency)</label>
           <div class="flex gap-2">
-            <input id="q" class="rounded-md p-2 w-full" placeholder="Type to filter… (e.g. Ndlovu or 'Explore')" />
-            <button id="btnClearQ" class="btn-lite px-2 py-2 rounded-md">Clear</button>
+            <input id="q" class="rounded p-2 w-full" placeholder="Type to filter… (e.g. Ndlovu or 'Explore')" />
+            <button id="btnClearQ" class="btn-lite px-2 py-2 rounded">Clear</button>
           </div>
         </div>
         <div>
           <label class="text-sm block mb-1">Status filter</label>
-          <select id="fStatus" class="rounded-md p-2 w-full"></select>
+          <select id="fStatus" class="rounded p-2 w-full"></select>
         </div>
       </div>
+      <div id="err" class="text-xs text-red-400"></div>
     </section>
 
     <!-- Table -->
@@ -88,248 +96,261 @@
       <div class="flex items-center justify-between mt-3">
         <div class="text-xs muted">Showing 15 per page</div>
         <div class="flex items-center gap-2">
-          <button id="prevPage" class="btn-lite px-3 py-2 rounded-md">Prev</button>
+          <button id="prevPage" class="btn-lite px-3 py-2 rounded">Prev</button>
           <span id="pageInfo" class="text-sm"></span>
-          <button id="nextPage" class="btn-lite px-3 py-2 rounded-md">Next</button>
+          <button id="nextPage" class="btn-lite px-3 py-2 rounded">Next</button>
         </div>
       </div>
     </section>
   </div>
 
 <script>
-  const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxPApgm_UeIU8rYA0TmqpSypOEUnLjSY86othzkrSBFvYcnNkjz54vgxhXcvotfuFoSCw/exec";
-  const STATUS_OPTIONS = ["To Contact", "Whatsapp", "Reply", "Keen to meet", "Cultivate", "Invite to events", "Not interested", "No Whatsapp", "Unsubscribe", "Referred", "Event Invite Sent", "Event Invite Accepted"];
-  const DEFAULT_AFTER_SEND = "Event Invite Sent";
-  const GID = new URLSearchParams(location.search).get('gid');
+/* ===== Locked to your deployment, but override allowed via ?api & ?gid ===== */
+const LOCKED_EXEC = "https://script.google.com/macros/s/AKfycby-u7eYahEt53jRyRZqWCoaTiaL1_CS7v4Ndo7Iw-1lLU0o0LvDU7M6cY8yutfsUhT23A/exec";
+const qs = new URLSearchParams(location.search);
+const EXEC = qs.get('api') || LOCKED_EXEC;
+const GID  = qs.get('gid') || "";
 
-  const PAGE_SIZE = 15;
-  let currentPage = 1;
-  let rowsAll = [];
-  let rowsView = [];
-  let counts = {};
+/* ===== Constants ===== */
+const STATUS_OPTIONS = ["To Contact", "Whatsapp", "Reply", "Keen to meet", "Cultivate", "Invite to events", "Not interested", "No Whatsapp", "Unsubscribe", "Referred", "Event Invite Sent", "Event Invite Accepted"];
+const DEFAULT_AFTER_SEND = "Event Invite Sent";
+const PAGE_SIZE = 15;
 
-  const el = (id) => document.getElementById(id);
-  const E = {
-    afterStatus: el('afterStatus'),
-    btnRefresh: el('btnRefresh'),
-    statusBar: el('statusBar'),
-    statusMsg: el('statusMsg'),
-    totalCount: el('totalCount'),
-    resultCount: el('resultCount'),
-    q: el('q'),
-    btnClearQ: el('btnClearQ'),
-    fStatus: el('fStatus'),
-    rows: el('rows'),
-    pageInfo: el('pageInfo'),
-    prevPage: el('prevPage'),
-    nextPage: el('nextPage')
-  };
+/* ===== DOM ===== */
+const el=id=>document.getElementById(id);
+const E={ 
+  envInfo: el('envInfo'), err: el('err'),
+  afterStatus: el('afterStatus'), btnRefresh: el('btnRefresh'),
+  tabsWrap: el('tabsWrap'), statusMsg: el('statusMsg'),
+  totalCount: el('totalCount'), resultCount: el('resultCount'),
+  q: el('q'), btnClearQ: el('btnClearQ'), fStatus: el('fStatus'),
+  rows: el('rows'), pageInfo: el('pageInfo'),
+  prevPage: el('prevPage'), nextPage: el('nextPage')
+};
 
-  function optHtml(v, sel){ return '<option value="'+v.replaceAll('"','&quot;')+'" '+(sel?'selected':'')+'>'+v+'</option>'; }
+/* ===== State ===== */
+let currentPage=1, rowsAll=[], rowsView=[], counts={}, LAST_SEND_TS=0;
 
-  function initControls(){
-    E.afterStatus.innerHTML = STATUS_OPTIONS.map(s => optHtml(s, s===DEFAULT_AFTER_SEND)).join('');
-    E.fStatus.innerHTML = '<option value="">(All)</option>' + STATUS_OPTIONS.map(s => optHtml(s, false)).join('');
-  }
+/* ===== Utils ===== */
+function showEnv(){ E.envInfo.textContent='v15'+(GID? ' · gid '+GID : ''); }
+function opt(v,sel){return `<option value="${v.replaceAll('"','&quot;')}" ${sel?'selected':''}>${v}</option>`;}
+function initControls(){
+  E.afterStatus.innerHTML = STATUS_OPTIONS.map(s=>opt(s,s===DEFAULT_AFTER_SEND)).join('');
+  E.fStatus.innerHTML = '<option value="">(All)</option>'+STATUS_OPTIONS.map(s=>opt(s,false)).join('');
+  showEnv();
+}
+function buildUrl(action){
+  const u = new URL(EXEC);
+  if (action) u.searchParams.set('action',action);
+  if (GID) u.searchParams.set('gid',GID);
+  u.searchParams.set('t', Date.now());
+  return u;
+}
+async function j(u){
+  const res = await fetch(u.toString());
+  if (!res.ok) throw new Error(res.status+' '+res.statusText);
+  return res.json();
+}
 
-  function buildUrl(action){
-    const url = new URL(WEB_APP_URL);
-    if (action) url.searchParams.set('action', action);
-    if (GID) url.searchParams.set('gid', GID);
-    url.searchParams.set('t', Date.now());
-    return url;
-  }
-
-  async function fetchJSON(url){
-    const res = await fetch(url.toString());
-    try { return await res.json(); } catch(e){ return {}; }
-  }
-
-  async function fetchStats(){
-    const js = await fetchJSON(buildUrl('stats'));
-    if (js && js.byStatus) {
-      counts = js.byStatus;
-      E.totalCount.textContent = js.total || 0;
-      renderStatusChips();
-      return;
-    }
-    counts = {};
-    rowsAll.forEach(r => { const k = r.status || ''; counts[k] = (counts[k]||0)+1; });
+/* ===== Stats & Tabs ===== */
+async function fetchStats(){
+  try { 
+    const s = await j(buildUrl('stats'));
+    counts = s.byStatus||{}; 
+    E.totalCount.textContent = s.total||0;
+  } catch(e){
+    counts={}; rowsAll.forEach(r=>{ const k=r.status||''; counts[k]=(counts[k]||0)+1; });
     E.totalCount.textContent = rowsAll.length;
-    renderStatusChips();
   }
+  renderTabs();
+}
+function renderTabs(){
+  const total = Object.values(counts).reduce((a,b)=>a+b,0);
+  const selected = E.fStatus.value || '';
+  const tabs = [{key:'', label:'All', count: total}];
+  STATUS_OPTIONS.forEach(s=>tabs.push({key:s, label:s, count:(counts[s]||0)}));
 
-  function renderStatusChips(){
-    const chips = [];
-    const total = Object.values(counts).reduce((a,b)=>a+b,0);
-    chips.push({ key:'', label:'All', count: total });
-    STATUS_OPTIONS.forEach(s => chips.push({ key:s, label:s, count:(counts[s]||0) }));
+  E.tabsWrap.innerHTML = tabs.map(t => {
+    const act = (t.key===selected) ? 'active' : '';
+    return `<button class="tab ${act}" data-key="${t.key.replaceAll('"','&quot;')}">
+              <span class="truncate max-w-[11rem]">${t.label}</span>
+              <span class="badge">${t.count}</span>
+            </button>`;
+  }).join('');
 
-    const selectedKey = E.fStatus.value || '';
-    E.statusBar.innerHTML = chips.map(ch => {
-      const active = (selectedKey === ch.key);
-      return '<span class="chip '+(active?'active':'')+'" data-key="'+ch.key.replaceAll('"','&quot;')+'">'+ch.label+': '+ch.count+'</span>';
-    }).join('');
-
-    Array.from(E.statusBar.querySelectorAll('.chip')).forEach(ch => {
-      ch.addEventListener('click', () => {
-        const key = ch.getAttribute('data-key');
-        E.fStatus.value = key;
-        loadRows();
-      });
+  Array.from(E.tabsWrap.querySelectorAll('.tab')).forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      const key = btn.getAttribute('data-key');
+      E.fStatus.value = key;
+      loadRows();
     });
-  }
-
-  async function loadRows(){
-    const url = buildUrl('recipients');
-    const status = (E.fStatus.value || '').trim();
-    if (status) url.searchParams.set('status', status);
-    const js = await fetchJSON(url);
-    rowsAll = js.recipients || [];
-    await fetchStats();
-    applySearch();
-  }
-
-  function applySearch(){
-    const q = (E.q.value || '').trim().toLowerCase();
-    rowsView = rowsAll.filter(r => {
-      if (!q) return true;
-      return (String(r.name||'').toLowerCase().includes(q) ||
-              String(r.surname||'').toLowerCase().includes(q) ||
-              String(r.agency||'').toLowerCase().includes(q));
-    });
-    E.resultCount.textContent = rowsView.length;
-    currentPage = 1;
-    renderTable();
-    updatePagerUI();
-  }
-
-  function pageSlice(){
-    const start = (currentPage - 1) * PAGE_SIZE;
-    return rowsView.slice(start, start + PAGE_SIZE);
-  }
-  function updatePagerUI(){
-    const totalPages = Math.max(1, Math.ceil(rowsView.length / PAGE_SIZE));
-    if (currentPage < 1) currentPage = 1;
-    if (currentPage > totalPages) currentPage = totalPages;
-    E.pageInfo.textContent = 'Page ' + currentPage + ' of ' + totalPages;
-    E.prevPage.disabled = (currentPage <= 1);
-    E.nextPage.disabled = (currentPage >= totalPages);
-  }
-
-  async function postAction(action, payload){
-    const url = buildUrl('');
-    const res = await fetch(url.toString(), {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ action, payload })
-    });
-    const js = await res.json();
-    if (js && js.result === 'error') throw new Error(js.message||'Server error');
-    return js || { result:'ok' };
-  }
-  async function updateStatus(rowIndex, newStatus){
-    return postAction('updateSingleStatus', { rowIndex, newStatus });
-  }
-  async function updateNote(rowIndex, note){
-    return postAction('updateNote', { rowIndex, note });
-  }
-
-  function selectHtml(opts, current) {
-    let html = '<select class="rounded-md p-1">';
-    for (const o of opts) {
-      const sel = (o === current) ? 'selected' : '';
-      html += '<option value="'+o.replaceAll('"','&quot;')+'" '+sel+'>'+o+'</option>';
-    }
-    html += '</select>';
-    return html;
-  }
-
-  function renderTable(){
-    E.rows.innerHTML = '';
-    const slice = pageSlice();
-    if (!slice.length){
-      E.rows.innerHTML = '<tr><td class="p-4 muted" colspan="8">No rows match your filters.</td></tr>';
-      return;
-    }
-    slice.forEach(r => {
-      const tr = document.createElement('tr');
-      tr.className = 'border-b border-neutral-800';
-
-      // Message Type
-      const tdType = document.createElement('td'); tdType.className='p-2';
-      tdType.innerHTML = '<span class="badge">'+(r.messageType || 'Recruit')+'</span>';
-
-      // Status
-      const tdStatus = document.createElement('td'); tdStatus.className='p-2';
-      tdStatus.innerHTML = selectHtml(STATUS_OPTIONS, r.status || '');
-      const selStatus = tdStatus.querySelector('select');
-      selStatus.addEventListener('change', async (e) => {
-        selStatus.disabled = true;
-        try { await updateStatus(r.rowIndex, e.target.value); } catch(e){ console.error(e); }
-        await loadRows();
-      });
-
-      // WhatsApp button
-      const tdWA = document.createElement('td'); tdWA.className='p-2';
-      const btnSend = document.createElement('button'); btnSend.className='btn px-3 py-1 rounded-md'; btnSend.textContent='Send';
-      const link = r.waLink || "";
-      const valid = /^https:\/\/(wa\.me|api\.whatsapp\.com)\//.test(link);
-      if (!link || !valid) { btnSend.disabled = true; btnSend.title = 'No valid WhatsApp link'; }
-      btnSend.addEventListener('click', async () => {
-        if (!link || !valid) { alert('No valid WhatsApp link for this row.'); return; }
-        try { window.open(link, '_blank', 'noopener'); } catch(e){ /* ignore */ }
-        const st = E.afterStatus ? E.afterStatus.value : "Event Invite Sent";
-        try { await updateStatus(r.rowIndex, st); } catch(e){ console.error(e); }
-        await loadRows();
-      });
-      tdWA.appendChild(btnSend);
-
-      // Name, Surname, Number, Agency
-      const tdName = document.createElement('td'); tdName.className='p-2'; tdName.textContent = r.name || '';
-      const tdSur  = document.createElement('td'); tdSur.className='p-2'; tdSur.textContent  = r.surname || '';
-      const tdNum  = document.createElement('td'); tdNum.className='p-2'; tdNum.textContent  = r.cell || '';
-      const tdAg   = document.createElement('td'); tdAg.className='p-2'; tdAg.textContent   = r.agency || '';
-
-      // Notes
-      const tdNote = document.createElement('td'); tdNote.className='p-2';
-      const btnN = document.createElement('button'); btnN.className='btn-lite px-2 py-1 rounded-md'; btnN.textContent='Edit';
-      btnN.addEventListener('click', async () => {
-        const newNote = prompt('Edit note for '+(r.name||''), r.notes || '');
-        if (newNote === null) return;
-        btnN.disabled = true;
-        try { await updateNote(r.rowIndex, newNote); } catch (e) { console.error(e); }
-        await loadRows();
-      });
-      tdNote.appendChild(btnN);
-
-      tr.appendChild(tdType);
-      tr.appendChild(tdStatus);
-      tr.appendChild(tdWA);
-      tr.appendChild(tdName);
-      tr.appendChild(tdSur);
-      tr.appendChild(tdNum);
-      tr.appendChild(tdAg);
-      tr.appendChild(tdNote);
-
-      E.rows.appendChild(tr);
-    });
-  }
-
-  function debounce(fn, ms){ let t; return (...args)=>{ clearTimeout(t); t=setTimeout(()=>fn(...args), ms); }; }
-  const onSearch = debounce(()=>applySearch(), 200);
-
-  document.addEventListener('DOMContentLoaded', async () => {
-    initControls();
-    E.q.addEventListener('input', onSearch);
-    E.btnClearQ.addEventListener('click', () => { E.q.value = ''; applySearch(); });
-    E.fStatus.addEventListener('change', () => loadRows());
-    E.prevPage.addEventListener('click', () => { currentPage--; renderTable(); updatePagerUI(); });
-    E.nextPage.addEventListener('click', () => { currentPage++; renderTable(); updatePagerUI(); });
-    E.btnRefresh.addEventListener('click', async () => { await loadRows(); });
-
-    await loadRows();
   });
+}
+
+/* ===== Data ===== */
+async function loadRows(){
+  const url = buildUrl('recipients');
+  const status = (E.fStatus.value||'').trim();
+  if (status) url.searchParams.set('status', status);
+  const js = await j(url);
+  rowsAll = js.recipients || [];
+  await fetchStats();
+  applySearch();
+}
+function applySearch(){
+  const q = (E.q.value||'').trim().toLowerCase();
+  rowsView = rowsAll.filter(r => {
+    if (!q) return true;
+    return (String(r.name||'').toLowerCase().includes(q) ||
+            String(r.surname||'').toLowerCase().includes(q) ||
+            String(r.agency||'').toLowerCase().includes(q));
+  });
+  E.resultCount.textContent = rowsView.length;
+  currentPage = 1;
+  renderTable(); updatePagerUI();
+}
+function pageSlice(){
+  const start = (currentPage-1)*PAGE_SIZE;
+  return rowsView.slice(start, start+PAGE_SIZE);
+}
+function updatePagerUI(){
+  const totalPages = Math.max(1, Math.ceil(rowsView.length / PAGE_SIZE));
+  if (currentPage<1) currentPage=1;
+  if (currentPage>totalPages) currentPage=totalPages;
+  E.pageInfo.textContent = 'Page '+currentPage+' of '+totalPages;
+  E.prevPage.disabled = (currentPage<=1);
+  E.nextPage.disabled = (currentPage>=totalPages);
+}
+
+/* ===== POST helpers ===== */
+async function postAction(action, payload){
+  const url = buildUrl('');
+  const res = await fetch(url.toString(), {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ action, payload })
+  });
+  const js = await res.json();
+  if (js && js.result === 'error') throw new Error(js.message||'Server error');
+  return js || { result:'ok' };
+}
+function replaceRowInMemory(row){
+  const ixAll = rowsAll.findIndex(x=>x.rowIndex===row.rowIndex);
+  if (ixAll>-1) rowsAll[ixAll]=row;
+  const ixView= rowsView.findIndex(x=>x.rowIndex===row.rowIndex);
+  if (ixView>-1) rowsView[ixView]=row;
+}
+function patchCounts(oldS, newS){
+  if (oldS) counts[oldS]=Math.max(0,(counts[oldS]||0)-1);
+  counts[newS]=(counts[newS]||0)+1;
+}
+
+/* ===== Render ===== */
+function selectHtml(opts, current){
+  let html = '<select class="rounded p-1">';
+  for (const o of opts) html += `<option value="${o.replaceAll('"','&quot;')}" ${o===current?'selected':''}>${o}</option>`;
+  html += '</select>'; return html;
+}
+function renderTable(){
+  E.rows.innerHTML = '';
+  const slice = pageSlice();
+  if (!slice.length){
+    E.rows.innerHTML = '<tr><td class="p-4 muted" colspan="8">No rows match your filters.</td></tr>'; return;
+  }
+  slice.forEach(r=>{
+    const tr = document.createElement('tr'); tr.className='border-b border-neutral-800';
+
+    // Message Type (read-only chip)
+    const tdType = document.createElement('td'); tdType.className='p-2';
+    tdType.innerHTML = `<span class="badge">${r.messageType||'Recruit'}</span>`;
+
+    // Status (editable)
+    const tdStatus = document.createElement('td'); tdStatus.className='p-2';
+    tdStatus.innerHTML = selectHtml(STATUS_OPTIONS, r.status||'');
+    const sel = tdStatus.querySelector('select');
+    sel.addEventListener('change', async (e)=>{
+      const newS = e.target.value; const oldS = r.status;
+      sel.disabled=true;
+      try {
+        const res = await postAction('updateSingleStatus', { rowIndex:r.rowIndex, newStatus:newS });
+        if (res && res.row) { replaceRowInMemory(res.row); patchCounts(oldS, res.row.status); renderTable(); renderTabs(); }
+        else e.target.value = oldS;
+      } catch(err) { console.error(err); e.target.value = oldS; }
+      finally { sel.disabled=false; }
+    });
+
+    // WhatsApp button
+    const tdWA = document.createElement('td'); tdWA.className='p-2';
+    const btn = document.createElement('button'); btn.className='btn px-3 py-1 rounded'; btn.textContent='Send';
+    const link = r.waLink||"";
+    const valid = /^https:\/\/(api\.whatsapp\.com|web\.whatsapp\.com|wa\.me)\//.test(link);
+    if (!link || !valid) { btn.disabled=true; btn.title='No valid WhatsApp link'; }
+    btn.addEventListener('click', async ()=>{
+      if (!link || !valid) return;
+      const now = Date.now(); if (now - LAST_SEND_TS < 1200) return; LAST_SEND_TS = now;
+      let phone = "", text = "";
+      try { const u = new URL(link); phone=u.searchParams.get('phone')||""; text=u.searchParams.get('text')||""; } catch(e){}
+      if (!phone) { const m = link.match(/wa\.me\/(\d+)/); if (m) phone=m[1]; }
+      if (!phone) return;
+
+      const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+      const finalLink = isMobile
+        ? `https://api.whatsapp.com/send?phone=${encodeURIComponent(phone)}&text=${text}`
+        : `https://web.whatsapp.com/send?phone=${encodeURIComponent(phone)}&text=${text}`;
+      try { window.open(finalLink, '_blank', 'noopener'); } catch(e){}
+
+      const newS = (E.afterStatus?.value)||"Event Invite Sent";
+      try {
+        const res = await postAction('updateSingleStatus', { rowIndex:r.rowIndex, newStatus:newS });
+        if (res && res.row) { patchCounts(r.status, res.row.status); replaceRowInMemory(res.row); renderTable(); renderTabs(); }
+      } catch(e){ console.error(e); }
+    });
+    tdWA.appendChild(btn);
+
+    const tdName = document.createElement('td'); tdName.className='p-2'; tdName.textContent=r.name||'';
+    const tdSur  = document.createElement('td'); tdSur.className='p-2';  tdSur.textContent=r.surname||'';
+    const tdNum  = document.createElement('td'); tdNum.className='p-2';  tdNum.textContent=r.cell||'';
+    const tdAg   = document.createElement('td'); tdAg.className='p-2';   tdAg.textContent=r.agency||'';
+
+    const tdNote = document.createElement('td'); tdNote.className='p-2';
+    const bN = document.createElement('button'); bN.className='btn-lite px-2 py-1 rounded'; bN.textContent='Edit';
+    bN.addEventListener('click', async ()=>{
+      const value = prompt('Edit note for '+(r.name||''), r.notes||'');
+      if (value===null) return;
+      bN.disabled=true;
+      try {
+        const res = await postAction('updateNote', { rowIndex:r.rowIndex, note:value });
+        if (res && res.row) { replaceRowInMemory(res.row); renderTable(); }
+      } catch(e){ console.error(e); }
+      finally { bN.disabled=false; }
+    });
+    tdNote.appendChild(bN);
+
+    tr.appendChild(tdType); tr.appendChild(tdStatus); tr.appendChild(tdWA);
+    tr.appendChild(tdName); tr.appendChild(tdSur); tr.appendChild(tdNum);
+    tr.appendChild(tdAg); tr.appendChild(tdNote);
+    E.rows.appendChild(tr);
+  });
+}
+
+/* ===== Events ===== */
+function debounce(fn,ms){ let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a),ms); }; }
+const onSearch = debounce(()=>applySearch(), 200);
+
+document.addEventListener('DOMContentLoaded', async ()=>{
+  // init
+  E.afterStatus.innerHTML = STATUS_OPTIONS.map(s=>opt(s,s===DEFAULT_AFTER_SEND)).join('');
+  E.fStatus.innerHTML = '<option value="">(All)</option>'+STATUS_OPTIONS.map(s=>opt(s,false)).join('');
+  showEnv();
+
+  E.q.addEventListener('input', onSearch);
+  E.btnClearQ.addEventListener('click', ()=>{ E.q.value=''; applySearch(); });
+  E.fStatus.addEventListener('change', ()=>loadRows());
+  E.prevPage.addEventListener('click', ()=>{ currentPage--; renderTable(); updatePagerUI(); });
+  E.nextPage.addEventListener('click', ()=>{ currentPage++; renderTable(); updatePagerUI(); });
+  E.btnRefresh.addEventListener('click', async ()=>{ await loadRows(); });
+
+  try { await loadRows(); } catch(e){ E.err.textContent = (e.message||e); }
+});
 </script>
 </body>
 </html>
