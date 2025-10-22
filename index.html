@@ -13,11 +13,13 @@
     select, input { background:#0b0b0b; border:1px solid #374151; }
     a.btn, button.btn { background:#e11d48; color:white; }
     .muted { color:#9ca3af; }
-    .chip { background:#1f2937; border:1px solid #374151; padding:6px 10px; border-radius:9999px; cursor:pointer; }
+    .chip { background:#1f2937; border:1px solid #374151; padding:6px 10px; border-radius:9999px; cursor:pointer; user-select:none; }
     .chip.active { background:#e11d48; color:white; border-color:#e11d48; }
     .btn-lite { background:#374151; color:#e5e7eb; }
     .badge { background:#374151; color:#e5e7eb; padding:2px 8px; border-radius:9999px; font-size:12px; }
     table th, table td { white-space: nowrap; }
+    .pill { padding:2px 8px; border-radius:9999px; border:1px solid #374151; }
+    .kbd { background:#1f2937; border:1px solid #374151; padding:1px 6px; border-radius:6px; font-size:11px; }
   </style>
 </head>
 <body class="min-h-screen">
@@ -26,7 +28,10 @@
     <header class="flex items-center justify-between">
       <div class="flex items-center gap-3">
         <img src="./assets/logo.png" alt="Recruit 101" class="h-10 w-auto rounded-md" />
-        <h1 class="text-xl font-semibold">Recruit 101</h1>
+        <div>
+          <h1 class="text-xl font-semibold">Recruit 101</h1>
+          <div class="text-xs muted">v12.2</div>
+        </div>
       </div>
       <div class="flex items-center gap-2">
         <label class="text-sm">After-send status</label>
@@ -35,29 +40,28 @@
       </div>
     </header>
 
-    <!-- Status bar + filters -->
+    <!-- Totals + status chips -->
     <section class="card rounded-xl p-3 space-y-3">
+      <div class="flex items-center gap-3 flex-wrap">
+        <div class="pill text-xs">Total: <span id="totalCount">0</span></div>
+        <div class="pill text-xs">Filtered: <span id="resultCount">0</span></div>
+        <div id="statusMsg" class="text-xs muted"></div>
+      </div>
       <div id="statusBar" class="flex gap-2 overflow-x-auto pb-1"></div>
-      <div class="grid md:grid-cols-4 gap-2 items-end">
-        <div>
-          <label class="text-sm block mb-1">Search Name</label>
-          <input id="fName" class="rounded-md p-2 w-full" placeholder="e.g. Thabo / de Villiers" />
+
+      <!-- Search Row -->
+      <div class="grid md:grid-cols-3 gap-2 items-end">
+        <div class="col-span-2">
+          <label class="text-sm block mb-1">Search (Name or Agency)</label>
+          <div class="flex gap-2">
+            <input id="q" class="rounded-md p-2 w-full" placeholder="Type to filter… (e.g. Ndlovu or 'Explore')" />
+            <span class="kbd">Enter</span>
+          </div>
         </div>
         <div>
-          <label class="text-sm block mb-1">Search Agency</label>
-          <input id="fAgency" class="rounded-md p-2 w-full" placeholder="e.g. KW Explore" />
-        </div>
-        <div>
-          <label class="text-sm block mb-1">Filter by Status</label>
+          <label class="text-sm block mb-1">Status filter</label>
           <select id="fStatus" class="rounded-md p-2 w-full"></select>
         </div>
-        <div class="flex gap-2">
-          <button id="btnApplyFilters" class="btn-lite px-3 py-2 rounded-md">Apply Filters</button>
-          <button id="btnClearFilters" class="btn-lite px-3 py-2 rounded-md">Clear</button>
-        </div>
-      </div>
-      <div class="text-xs muted">
-        <span id="resultCount">0</span> matching of <span id="totalCount">0</span> total
       </div>
     </section>
 
@@ -103,8 +107,9 @@
 
   const PAGE_SIZE = 15;
   let currentPage = 1;
-  let rowsData = [];     // dataset from backend (already filtered server-side)
-  let totalCount = 0;    // total available (from stats)
+  let rowsAll = [];   // unfiltered (latest fetch)
+  let rowsView = [];  // filtered view
+  let counts = {};    // status counts
 
   // Elements
   const el = (id) => document.getElementById(id);
@@ -112,13 +117,11 @@
     afterStatus: el('afterStatus'),
     btnRefresh: el('btnRefresh'),
     statusBar: el('statusBar'),
-    fName: el('fName'),
-    fAgency: el('fAgency'),
-    fStatus: el('fStatus'),
-    btnApplyFilters: el('btnApplyFilters'),
-    btnClearFilters: el('btnClearFilters'),
-    resultCount: el('resultCount'),
+    statusMsg: el('statusMsg'),
     totalCount: el('totalCount'),
+    resultCount: el('resultCount'),
+    q: el('q'),
+    fStatus: el('fStatus'),
     rows: el('rows'),
     pageInfo: el('pageInfo'),
     prevPage: el('prevPage'),
@@ -127,91 +130,102 @@
 
   function optHtml(v, sel){ return '<option value="'+v.replaceAll('"','&quot;')+'" '+(sel?'selected':'')+'>'+v+'</option>'; }
 
-  // Initialize dropdowns
   function initControls(){
-    // after-send status
+    // After-send status selector
     E.afterStatus.innerHTML = STATUS_OPTIONS.map(s => optHtml(s, s===DEFAULT_AFTER_SEND)).join('');
-    // filter status (with blank for all)
+    // Status filter dropdown (with All)
     E.fStatus.innerHTML = '<option value="">(All)</option>' + STATUS_OPTIONS.map(s => optHtml(s, false)).join('');
   }
 
-  // Helpers
   function buildUrl(action){
     const url = new URL(WEB_APP_URL);
-    url.searchParams.set('action', action);
+    if (action) url.searchParams.set('action', action);
     if (GID) url.searchParams.set('gid', GID);
+    url.searchParams.set('t', Date.now());
     return url;
   }
-  function pageSlice(){
-    const start = (currentPage - 1) * PAGE_SIZE;
-    return rowsData.slice(start, start + PAGE_SIZE);
-  }
-  function updatePagerUI(){
-    const totalPages = Math.max(1, Math.ceil(rowsData.length / PAGE_SIZE));
-    if (currentPage < 1) currentPage = 1;
-    if (currentPage > totalPages) currentPage = totalPages;
-    E.pageInfo.textContent = 'Page ' + currentPage + ' of ' + totalPages;
-    E.prevPage.disabled = (currentPage <= 1);
-    E.nextPage.disabled = (currentPage >= totalPages);
+
+  // Fetch stats (with client fallback)
+  async function fetchStats(){
+    try {
+      const url = buildUrl('stats');
+      const res = await fetch(url.toString());
+      const js = await res.json();
+      if (js && js.byStatus) {
+        counts = js.byStatus;
+        E.totalCount.textContent = js.total || 0;
+        renderStatusChips();
+        return;
+      }
+    } catch(e){ /* ignore */ }
+    // Fallback: compute from current rowsAll
+    counts = {};
+    rowsAll.forEach(r => { const k = r.status || ''; counts[k] = (counts[k]||0)+1; });
+    E.totalCount.textContent = rowsAll.length;
+    renderStatusChips();
   }
 
-  // Stats bar
-  async function fetchStats(){
-    const url = buildUrl('stats'); url.searchParams.set('t', Date.now());
-    const res = await fetch(url.toString()); const js = await res.json();
-    renderStatusBar(js.byStatus || {});
-    totalCount = js.total || 0;
-    E.totalCount.textContent = totalCount;
-  }
-  function renderStatusBar(byStatus){
-    // Order by our STATUS_OPTIONS; include "Other" aggregated for non-list keys
+  function renderStatusChips(){
+    const order = [''].concat(STATUS_OPTIONS); // include blank as "All"
     const chips = [];
-    const seen = new Set();
-    chips.push({label:'All', key:'', count:Object.values(byStatus).reduce((a,b)=>a+b,0)});
-    STATUS_OPTIONS.forEach(s => { chips.push({label:s, key:s, count:(byStatus[s]||0)}); seen.add(s); });
-    const others = Object.keys(byStatus).filter(k => !seen.has(k));
-    if (others.length){
-      const c = others.map(k => byStatus[k]||0).reduce((a,b)=>a+b,0);
-      chips.push({label:'Other', key:'__other__', count:c});
-    }
+    const total = Object.values(counts).reduce((a,b)=>a+b,0);
+    chips.push({ key:'', label:'All', count: total });
+    STATUS_OPTIONS.forEach(s => chips.push({ key:s, label:s, count:(counts[s]||0) }));
 
     const selectedKey = E.fStatus.value || '';
     E.statusBar.innerHTML = chips.map(ch => {
-      const active = (selectedKey === ch.key || (selectedKey==='' && ch.key===''));
+      const active = (selectedKey === ch.key);
       return '<span class="chip '+(active?'active':'')+'" data-key="'+ch.key.replaceAll('"','&quot;')+'">'+ch.label+': '+ch.count+'</span>';
     }).join('');
 
     Array.from(E.statusBar.querySelectorAll('.chip')).forEach(ch => {
       ch.addEventListener('click', () => {
         const key = ch.getAttribute('data-key');
-        if (key === '__other__') {
-          // Selecting "Other" in the bar sets status filter to blank; user can refine via dropdown
-          E.fStatus.value = '';
-        } else {
-          E.fStatus.value = key;
-        }
+        E.fStatus.value = key;
         applyFilters();
       });
     });
   }
 
-  // Data
-  async function fetchRecipients(){
+  // Fetch recipients from server with filters (server-side) then apply client search
+  async function loadRows(){
     const url = buildUrl('recipients');
-    url.searchParams.set('t', Date.now());
-    const name = (E.fName.value || '').trim();
-    const agency = (E.fAgency.value || '').trim();
     const status = (E.fStatus.value || '').trim();
-    if (name) url.searchParams.set('name', name);
-    if (agency) url.searchParams.set('agency', agency);
     if (status) url.searchParams.set('status', status);
     const res = await fetch(url.toString());
     const js = await res.json();
-    rowsData = js.recipients || [];
-    E.resultCount.textContent = rowsData.length;
+    rowsAll = js.recipients || [];
+    await fetchStats(); // keep counts in sync
+    applyFilters(false); // do not reload again
+  }
+
+  // Apply filters: client search across name or agency + current status dropdown selection already used server-side
+  function applyFilters(reload=true){
+    const q = (E.q.value || '').trim().toLowerCase();
+    rowsView = rowsAll.filter(r => {
+      if (!q) return true;
+      return (String(r.name||'').toLowerCase().includes(q) ||
+              String(r.surname||'').toLowerCase().includes(q) ||
+              String(r.agency||'').toLowerCase().includes(q));
+    });
+    E.resultCount.textContent = rowsView.length;
     currentPage = 1;
     renderTable();
     updatePagerUI();
+    if (reload) loadRows(); // optional back-sync
+  }
+
+  function pageSlice(){
+    const start = (currentPage - 1) * PAGE_SIZE;
+    return rowsView.slice(start, start + PAGE_SIZE);
+  }
+  function updatePagerUI(){
+    const totalPages = Math.max(1, Math.ceil(rowsView.length / PAGE_SIZE));
+    if (currentPage < 1) currentPage = 1;
+    if (currentPage > totalPages) currentPage = totalPages;
+    E.pageInfo.textContent = 'Page ' + currentPage + ' of ' + totalPages;
+    E.prevPage.disabled = (currentPage <= 1);
+    E.nextPage.disabled = (currentPage >= totalPages);
   }
 
   async function postAction(action, payload){
@@ -225,7 +239,6 @@
     if (js && js.result === 'error') throw new Error(js.message||'Server error');
     return js || { result:'ok' };
   }
-
   async function updateStatus(rowIndex, newStatus){
     return postAction('updateSingleStatus', { rowIndex, newStatus });
   }
@@ -233,7 +246,6 @@
     return postAction('updateNote', { rowIndex, note });
   }
 
-  // Render rows
   function selectHtml(opts, current) {
     let html = '<select class="rounded-md p-1">';
     for (const o of opts) {
@@ -262,29 +274,25 @@
       selStatus.addEventListener('change', async (e) => {
         selStatus.disabled = true;
         try { await updateStatus(r.rowIndex, e.target.value); } catch(e){ console.error(e); }
-        await fetchStats();
-        await fetchRecipients();
+        await loadRows();
       });
 
-      // WhatsApp button
+      // WhatsApp button (window.open for reliability + validation)
       const tdWA = document.createElement('td'); tdWA.className='p-2';
-      if (r.waLink) {
-        const a = document.createElement('a');
-        a.className = 'btn px-3 py-1 rounded-md';
-        a.textContent = 'Send';
-        a.href = r.waLink; a.target = '_blank';
-        a.addEventListener('click', async () => {
-          const stSel = E.afterStatus;
-          const st = stSel ? stSel.value : DEFAULT_AFTER_SEND;
-          try { await updateStatus(r.rowIndex, st); } catch (e) {}
-          await fetchStats();
-          await fetchRecipients();
-        });
-        tdWA.appendChild(a);
-      } else {
-        const m = document.createElement('span'); m.className='muted text-xs'; m.textContent='No link';
-        tdWA.appendChild(m);
-      }
+      const btnSend = document.createElement('button'); btnSend.className='btn px-3 py-1 rounded-md'; btnSend.textContent='Send';
+      const link = r.waLink || "";
+      const valid = /^https:\/\/(wa\.me|api\.whatsapp\.com)\//.test(link);
+      if (!link || !valid) { btnSend.disabled = true; btnSend.title = 'No valid WhatsApp link'; }
+      btnSend.addEventListener('click', async () => {
+        if (!link || !valid) { alert('No valid WhatsApp link for this row.'); return; }
+        // Open WA first (user gesture)
+        try { window.open(link, '_blank', 'noopener'); } catch(e){ /* ignore */ }
+        // Then update status
+        const st = E.afterStatus ? E.afterStatus.value : DEFAULT_AFTER_SEND;
+        try { await updateStatus(r.rowIndex, st); } catch(e){ console.error(e); }
+        await loadRows();
+      });
+      tdWA.appendChild(btnSend);
 
       // Name, Surname, Number, Agency
       const tdName = document.createElement('td'); tdName.className='p-2'; tdName.textContent = r.name || '';
@@ -300,7 +308,7 @@
         if (newNote === null) return; // cancelled
         btnN.disabled = true;
         try { await updateNote(r.rowIndex, newNote); } catch (e) { console.error(e); }
-        await fetchRecipients();
+        await loadRows();
       });
       tdNote.appendChild(btnN);
 
@@ -317,27 +325,19 @@
     });
   }
 
-  // Filters
-  async function applyFilters(){
-    await fetchRecipients();
-  }
-  function clearFilters(){
-    E.fName.value = '';
-    E.fAgency.value = '';
-    E.fStatus.value = '';
-  }
+  // Debounce for search
+  function debounce(fn, ms){ let t; return (...args)=>{ clearTimeout(t); t=setTimeout(()=>fn(...args), ms); }; }
+  const onSearchChanged = debounce(()=>applyFilters(), 250);
 
   // Wire events
   document.addEventListener('DOMContentLoaded', async () => {
     initControls();
-    E.btnApplyFilters.addEventListener('click', applyFilters);
-    E.btnClearFilters.addEventListener('click', async () => { clearFilters(); await applyFilters(); });
-    E.btnRefresh.addEventListener('click', async () => { await fetchStats(); await applyFilters(); });
-    E.prevPage.addEventListener('click', () => { currentPage--; renderTable(); updatePagerUI(); });
-    E.nextPage.addEventListener('click', () => { currentPage++; renderTable(); updatePagerUI(); });
+    E.q.addEventListener('input', onSearchChanged);
+    E.fStatus.addEventListener('change', () => loadRows());
+    E.btnRefresh.addEventListener('click', async () => { await loadRows(); });
 
-    await fetchStats();
-    await applyFilters();
+    // First load
+    await loadRows();
   });
 </script>
 </body>
