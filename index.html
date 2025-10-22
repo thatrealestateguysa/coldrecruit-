@@ -14,6 +14,7 @@
     a.btn, button.btn { background:#e11d48; color:white; }
     .muted { color:#9ca3af; }
     table th, table td { white-space: nowrap; }
+    .btn-ghost { background:#374151; color:#e5e7eb; }
   </style>
 </head>
 <body class="min-h-screen">
@@ -26,17 +27,42 @@
       <div class="flex items-center gap-2">
         <label class="text-sm">After-send status</label>
         <select id="afterStatus" class="rounded-md p-2">
-          <option  value="To Contact">To Contact</option><option selected value="Whatsapp">Whatsapp</option><option  value="Reply">Reply</option><option  value="Keen to meet">Keen to meet</option><option  value="Cultivate">Cultivate</option><option  value="Invite to events">Invite to events</option><option  value="Not interested">Not interested</option><option  value="No Whatsapp">No Whatsapp</option><option  value="Unsubscribe">Unsubscribe</option><option  value="Referred">Referred</option>
+          <option value="To Contact" >To Contact</option>
+<option value="Whatsapp" selected>Whatsapp</option>
+<option value="Reply" >Reply</option>
+<option value="Keen to meet" >Keen to meet</option>
+<option value="Cultivate" >Cultivate</option>
+<option value="Invite to events" >Invite to events</option>
+<option value="Not interested" >Not interested</option>
+<option value="No Whatsapp" >No Whatsapp</option>
+<option value="Unsubscribe" >Unsubscribe</option>
+<option value="Referred" >Referred</option>
         </select>
         <button id="btnRefresh" class="btn px-3 py-2 rounded-md">Refresh</button>
       </div>
     </header>
 
     <section class="card rounded-xl p-3">
+      <div class="grid md:grid-cols-3 gap-3 items-end">
+        <div>
+          <label class="text-sm block mb-1">Bulk Message Type</label>
+          <select id="bulkType" class="rounded-md p-2 w-full"><option value="Recruit">Recruit</option>
+<option value="Event 1 - Win Win">Event 1 - Win Win</option></select>
+        </div>
+        <div class="flex gap-2">
+          <button id="btnApplyBulk" class="btn px-3 py-2 rounded-md">Apply to Selected</button>
+          <button id="btnClearSel" class="btn-ghost px-3 py-2 rounded-md">Clear Selection</button>
+        </div>
+        <div class="text-sm muted">Selected: <span id="selCount">0</span></div>
+      </div>
+    </section>
+
+    <section class="card rounded-xl p-3">
       <div class="overflow-auto">
         <table class="w-full text-sm">
           <thead class="text-xs uppercase muted">
             <tr class="border-b border-neutral-700">
+              <th class="p-2 text-left"><input type="checkbox" id="checkAll"></th>
               <th class="p-2 text-left">Message Type</th>
               <th class="p-2 text-left">Status</th>
               <th class="p-2 text-left">WhatsApp</th>
@@ -49,17 +75,20 @@
           <tbody id="rows"></tbody>
         </table>
       </div>
-      <p class="muted text-xs mt-2">Change Message Type or Status, then click <b>Send</b>.</p>
+      <p class="muted text-xs mt-2">Change Message Type or Status, then click <b>Send</b>. Use the bulk controls above to set Message Type for many rows at once.</p>
     </section>
   </div>
 
 <script>
-  const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxIJc_p_lX9SdQGAcinR_HjLcbey1l9eum3vMM9_bmHz1rrFwa0R_53FlfXLvK2jqPBsQ/exec";
+  const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzvl9L9Sg52CJYJ_m5NnuSCgFmQevxch5ym-7zT1MF43DPldvBJfTYuT9EpHnAcleTs0w/exec";
   const MESSAGE_TYPES = ["Recruit", "Event 1 - Win Win"];
   const STATUS_OPTIONS = ["To Contact", "Whatsapp", "Reply", "Keen to meet", "Cultivate", "Invite to events", "Not interested", "No Whatsapp", "Unsubscribe", "Referred"];
 
-  const el = id => document.getElementById(id);
+  const el = (id) => document.getElementById(id);
   let rowsData = [];
+  let selected = new Set();
+
+  function setSelCount(){ el('selCount').textContent = selected.size; }
 
   async function fetchRecipients() {
     const url = new URL(WEB_APP_URL);
@@ -67,7 +96,9 @@
     const res = await fetch(url.toString());
     const js = await res.json();
     rowsData = js.recipients || [];
+    selected.clear();
     renderTable();
+    setSelCount();
   }
 
   async function updateMessageType(rowIndex, newType) {
@@ -104,21 +135,24 @@
 
   function renderTable() {
     const tb = el('rows'); tb.innerHTML = '';
-    rowsData.forEach((r) => {
+    rowsData.forEach((r, i) => {
       const tr = document.createElement('tr');
       tr.className = 'border-b border-neutral-800';
 
-      // Message Type select
+      const tdChk = document.createElement('td'); tdChk.className='p-2';
+      const chk = document.createElement('input'); chk.type='checkbox'; chk.checked = selected.has(i);
+      chk.addEventListener('change', () => { if (chk.checked) selected.add(i); else selected.delete(i); setSelCount(); });
+      tdChk.appendChild(chk);
+
       const tdType = document.createElement('td'); tdType.className='p-2';
       tdType.innerHTML = selectHtml(MESSAGE_TYPES, r.messageType || 'Recruit');
       const selType = tdType.querySelector('select');
       selType.addEventListener('change', async (e) => {
         selType.disabled = true;
         await updateMessageType(r.rowIndex, e.target.value);
-        await fetchRecipients(); // reload to get rebuilt waLink
+        await fetchRecipients();
       });
 
-      // Status select
       const tdStatus = document.createElement('td'); tdStatus.className='p-2';
       tdStatus.innerHTML = selectHtml(STATUS_OPTIONS, r.status || '');
       const selStatus = tdStatus.querySelector('select');
@@ -128,7 +162,6 @@
         await fetchRecipients();
       });
 
-      // WhatsApp button
       const tdWA = document.createElement('td'); tdWA.className='p-2';
       if (r.waLink) {
         const a = document.createElement('a');
@@ -148,12 +181,12 @@
         tdWA.appendChild(span);
       }
 
-      // Name / Surname / Number / Agency
       const tdName = document.createElement('td'); tdName.className='p-2'; tdName.textContent = r.name || '';
       const tdSur  = document.createElement('td'); tdSur.className='p-2'; tdSur.textContent  = r.surname || '';
       const tdNum  = document.createElement('td'); tdNum.className='p-2'; tdNum.textContent  = r.cell || '';
       const tdAg   = document.createElement('td'); tdAg.className='p-2'; tdAg.textContent   = r.agency || '';
 
+      tr.appendChild(tdChk);
       tr.appendChild(tdType);
       tr.appendChild(tdStatus);
       tr.appendChild(tdWA);
@@ -164,9 +197,34 @@
 
       tb.appendChild(tr);
     });
+
+    const checkAll = document.getElementById('checkAll');
+    checkAll.checked = (selected.size === rowsData.length && rowsData.length > 0);
+    checkAll.onchange = (e) => {
+      if (e.target.checked) {
+        selected = new Set(rowsData.map((_, idx) => idx));
+      } else {
+        selected.clear();
+      }
+      renderTable();
+      setSelCount();
+    };
   }
 
-  el('btnRefresh').onclick = fetchRecipients;
+  document.addEventListener('DOMContentLoaded', () => {
+    el('btnApplyBulk').onclick = async () => {
+      if (selected.size === 0) { alert('Select at least one row.'); return; }
+      const newType = el('bulkType').value;
+      const targets = Array.from(selected).map(i => rowsData[i].rowIndex);
+      for (const ri of targets) {
+        try { await updateMessageType(ri, newType); } catch(e) {}
+      }
+      await fetchRecipients();
+    };
+    el('btnClearSel').onclick = () => { selected.clear(); renderTable(); setSelCount(); };
+    el('btnRefresh').onclick = fetchRecipients;
+  });
+
   fetchRecipients();
 </script>
 </body>
