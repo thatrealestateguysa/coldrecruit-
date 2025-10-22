@@ -1,10 +1,12 @@
 
-# Recruit 101 — Frontend (v11.3)
+# Recruit 101 — Frontend (v12)
 
-**Wired URL:** https://script.google.com/macros/s/AKfycbwtDKcJB9-70mSR0Zoxut5H7NDS5SvJLfFqdygrmj-bxhkOznFiaUXRN-wrokl7oRWyDw/exec
+**Wired URL:** https://script.google.com/macros/s/AKfycbxPApgm_UeIU8rYA0TmqpSypOEUnLjSY86othzkrSBFvYcnNkjz54vgxhXcvotfuFoSCw/exec
 
-- Fixed **15 rows per page** with Prev/Next; selection remembered across pages.
-- Per-row **Message Type** and **Status** dropdowns; each write to backend and then reload.
-- **Bulk Message Type**: tries backend `bulkUpdateMessageType`, falls back to per-row calls.
-- Cache-busted fetch so WhatsApp link and message refresh immediately after any change.
-- **NEW**: If you open `index.html?gid=<TAB_GID>`, the frontend forwards that gid on every request so the right tab is always used.
+- **Status bar** with live counts (click chips to filter)
+- **Search** by Name, Agency, and Status (server-side filters)
+- **Message Type**: read-only badge (driven by sheet/backend)
+- **Notes**: quick edit via prompt (calls `updateNote`)
+- **Send** opens WhatsApp and updates row to the selected **After-send status** (default: "Event Invite Sent")
+- **15 rows per page** with Prev/Next
+- Add `?gid=<tab_gid>` to the URL to force a specific sheet tab
