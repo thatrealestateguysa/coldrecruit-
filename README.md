@@ -1,7 +1,7 @@
 
-# Recruit 101 — Frontend (v10, pagination + bulk + cache-bust)
+# Recruit 101 — Frontend (v11)
 
-**Wired URL:** https://script.google.com/macros/s/AKfycbynH2SST3HuLwmKuV0QZVwOV0nPSAxv2Lg6Vyqdq75S28VNbYPKGv231nzJJiprr-IO8Q/exec
+**Wired URL:** https://script.google.com/macros/s/AKfycbwtawOnQILFvMUqf-vWbMjqgtmoVASYPuHoujqFqfsr25glvEOxBpldq2wYN3eVlwjIYw/exec
 
 - Fixed **15 rows per page** with Prev/Next; selection remembered across pages.
 - Per-row **Message Type** and **Status** dropdowns; each write to backend and then reload.
