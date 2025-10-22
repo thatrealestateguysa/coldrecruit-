@@ -97,9 +97,12 @@
   </div>
 
 <script>
-  const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwtawOnQILFvMUqf-vWbMjqgtmoVASYPuHoujqFqfsr25glvEOxBpldq2wYN3eVlwjIYw/exec";
+  const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwtDKcJB9-70mSR0Zoxut5H7NDS5SvJLfFqdygrmj-bxhkOznFiaUXRN-wrokl7oRWyDw/exec";
   const MESSAGE_TYPES = ["Recruit", "Event 1 - Win Win"];
   const STATUS_OPTIONS = ["To Contact", "Whatsapp", "Reply", "Keen to meet", "Cultivate", "Invite to events", "Not interested", "No Whatsapp", "Unsubscribe", "Referred"];
+
+  // NEW: forward gid from the page URL (example: index.html?gid=123456789)
+  const GID = new URLSearchParams(location.search).get('gid');
 
   const PAGE_SIZE = 15;
   let currentPage = 1;
@@ -127,6 +130,7 @@
   async function fetchRecipients() {
     const url = new URL(WEB_APP_URL);
     url.searchParams.set('action','recipients');
+    if (GID) url.searchParams.set('gid', GID); // forward gid
     url.searchParams.set('t', Date.now()); // cache-buster
     const res = await fetch(url.toString());
     const js = await res.json();
@@ -138,7 +142,9 @@
   }
 
   async function postAction(action, payload){
-    const res = await fetch(WEB_APP_URL, {
+    const url = new URL(WEB_APP_URL);
+    if (GID) url.searchParams.set('gid', GID);
+    const res = await fetch(url.toString(), {
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body: JSON.stringify({ action, payload })
