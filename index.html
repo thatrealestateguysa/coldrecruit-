@@ -15,6 +15,8 @@
     .muted { color:#9ca3af; }
     table th, table td { white-space: nowrap; }
     .btn-ghost { background:#374151; color:#e5e7eb; }
+    .btn-lite { background:#4b5563; color:white; }
+    .btn-lite[disabled] { opacity:0.4; cursor:not-allowed; }
   </style>
 </head>
 <body class="min-h-screen">
@@ -42,6 +44,7 @@
       </div>
     </header>
 
+    <!-- Bulk controls -->
     <section class="card rounded-xl p-3">
       <div class="grid md:grid-cols-3 gap-3 items-end">
         <div>
@@ -53,7 +56,10 @@
           <button id="btnApplyBulk" class="btn px-3 py-2 rounded-md">Apply to Selected</button>
           <button id="btnClearSel" class="btn-ghost px-3 py-2 rounded-md">Clear Selection</button>
         </div>
-        <div class="text-sm muted">Selected: <span id="selCount">0</span></div>
+        <div class="text-sm muted flex items-center gap-2">
+          Selected: <span id="selCount">0</span>
+          <span id="progress" class="text-xs muted"></span>
+        </div>
       </div>
     </section>
 
@@ -75,7 +81,18 @@
           <tbody id="rows"></tbody>
         </table>
       </div>
-      <p class="muted text-xs mt-2">Change Message Type or Status, then click <b>Send</b>. Use the bulk controls above to set Message Type for many rows at once.</p>
+
+      <!-- Pagination -->
+      <div class="flex items-center justify-between mt-3">
+        <div class="text-xs muted">Showing 15 per page</div>
+        <div class="flex items-center gap-2">
+          <button id="prevPage" class="btn-lite px-3 py-2 rounded-md">Prev</button>
+          <span id="pageInfo" class="text-sm"></span>
+          <button id="nextPage" class="btn-lite px-3 py-2 rounded-md">Next</button>
+        </div>
+      </div>
+
+      <p class="muted text-xs mt-2">Use bulk to change Message Type for many rows at once. Per-row changes also work.</p>
     </section>
   </div>
 
@@ -84,11 +101,29 @@
   const MESSAGE_TYPES = ["Recruit", "Event 1 - Win Win"];
   const STATUS_OPTIONS = ["To Contact", "Whatsapp", "Reply", "Keen to meet", "Cultivate", "Invite to events", "Not interested", "No Whatsapp", "Unsubscribe", "Referred"];
 
+  const PAGE_SIZE = 15;
+  let currentPage = 1;
+
   const el = (id) => document.getElementById(id);
   let rowsData = [];
-  let selected = new Set();
+  let selected = new Set(); // holds backend rowIndex values across pages
 
   function setSelCount(){ el('selCount').textContent = selected.size; }
+  function setProgress(msg){ el('progress').textContent = msg || ''; }
+
+  function totalPages(){ return Math.max(1, Math.ceil(rowsData.length / PAGE_SIZE)); }
+  function clampPage(){ if (currentPage < 1) currentPage = 1; if (currentPage > totalPages()) currentPage = totalPages(); }
+  function pageSlice(){
+    const start = (currentPage - 1) * PAGE_SIZE;
+    return rowsData.slice(start, start + PAGE_SIZE);
+  }
+
+  function updatePagerUI(){
+    clampPage();
+    el('pageInfo').textContent = 'Page ' + currentPage + ' of ' + totalPages();
+    el('prevPage').disabled = (currentPage <= 1);
+    el('nextPage').disabled = (currentPage >= totalPages());
+  }
 
   async function fetchRecipients() {
     const url = new URL(WEB_APP_URL);
@@ -96,38 +131,40 @@
     const res = await fetch(url.toString());
     const js = await res.json();
     rowsData = js.recipients || [];
-    selected.clear();
+    clampPage();
     renderTable();
+    updatePagerUI();
     setSelCount();
   }
 
-  async function updateMessageType(rowIndex, newType) {
-    await fetch(WEB_APP_URL, {
+  async function postAction(action, payload){
+    const res = await fetch(WEB_APP_URL, {
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({
-        action:'updateMessageType',
-        payload: { rowIndex, newType }
-      })
+      body: JSON.stringify({ action, payload })
     });
+    if (!res.ok) throw new Error('HTTP '+res.status);
+    let js = null;
+    try { js = await res.json(); } catch(e) {}
+    if (js && js.result === 'error') throw new Error(js.message||'Server error');
+    return js || {result:'ok'};
   }
 
+  async function updateMessageType(rowIndex, newType) {
+    return postAction('updateMessageType', { rowIndex, newType });
+  }
+  async function bulkUpdateMessageType(rowIndices, newType) {
+    return postAction('bulkUpdateMessageType', { rowIndices, newType });
+  }
   async function updateStatus(rowIndex, newStatus) {
-    await fetch(WEB_APP_URL, {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({
-        action:'updateSingleStatus',
-        payload: { rowIndex, newStatus }
-      })
-    });
+    return postAction('updateSingleStatus', { rowIndex, newStatus });
   }
 
   function selectHtml(opts, current) {
     let html = '<select class="rounded-md p-1">';
     for (const o of opts) {
       const sel = (o === current) ? 'selected' : '';
-      html += `<option value="${o}" ${sel}>${o}</option>`;
+      html += '<option value="'+o+'" '+sel+'>'+o+'</option>';
     }
     html += '</select>';
     return html;
@@ -135,33 +172,44 @@
 
   function renderTable() {
     const tb = el('rows'); tb.innerHTML = '';
-    rowsData.forEach((r, i) => {
+    const visible = pageSlice();
+
+    visible.forEach((r) => {
       const tr = document.createElement('tr');
       tr.className = 'border-b border-neutral-800';
 
+      // Checkbox reflecting global selection by rowIndex
       const tdChk = document.createElement('td'); tdChk.className='p-2';
-      const chk = document.createElement('input'); chk.type='checkbox'; chk.checked = selected.has(i);
-      chk.addEventListener('change', () => { if (chk.checked) selected.add(i); else selected.delete(i); setSelCount(); });
+      const chk = document.createElement('input'); chk.type='checkbox'; chk.checked = selected.has(r.rowIndex);
+      chk.addEventListener('change', () => {
+        if (chk.checked) selected.add(r.rowIndex); else selected.delete(r.rowIndex);
+        setSelCount();
+        // update "check all" based on visible page
+        wireCheckAllState();
+      });
       tdChk.appendChild(chk);
 
+      // Message Type select
       const tdType = document.createElement('td'); tdType.className='p-2';
       tdType.innerHTML = selectHtml(MESSAGE_TYPES, r.messageType || 'Recruit');
       const selType = tdType.querySelector('select');
       selType.addEventListener('change', async (e) => {
         selType.disabled = true;
-        await updateMessageType(r.rowIndex, e.target.value);
+        try { await updateMessageType(r.rowIndex, e.target.value); } catch(e){ console.error(e); }
         await fetchRecipients();
       });
 
+      // Status select
       const tdStatus = document.createElement('td'); tdStatus.className='p-2';
       tdStatus.innerHTML = selectHtml(STATUS_OPTIONS, r.status || '');
       const selStatus = tdStatus.querySelector('select');
       selStatus.addEventListener('change', async (e) => {
         selStatus.disabled = true;
-        await updateStatus(r.rowIndex, e.target.value);
+        try { await updateStatus(r.rowIndex, e.target.value); } catch(e){ console.error(e); }
         await fetchRecipients();
       });
 
+      // WhatsApp button
       const tdWA = document.createElement('td'); tdWA.className='p-2';
       if (r.waLink) {
         const a = document.createElement('a');
@@ -181,6 +229,7 @@
         tdWA.appendChild(span);
       }
 
+      // Name / Surname / Number / Agency
       const tdName = document.createElement('td'); tdName.className='p-2'; tdName.textContent = r.name || '';
       const tdSur  = document.createElement('td'); tdSur.className='p-2'; tdSur.textContent  = r.surname || '';
       const tdNum  = document.createElement('td'); tdNum.className='p-2'; tdNum.textContent  = r.cell || '';
@@ -198,15 +247,22 @@
       tb.appendChild(tr);
     });
 
+    // Wire Select All checkbox for the current page
+    wireCheckAllState();
+  }
+
+  function wireCheckAllState(){
+    const visible = pageSlice();
     const checkAll = document.getElementById('checkAll');
-    checkAll.checked = (selected.size === rowsData.length && rowsData.length > 0);
+    const allSelectedOnPage = visible.length > 0 && visible.every(r => selected.has(r.rowIndex));
+    checkAll.checked = allSelectedOnPage;
     checkAll.onchange = (e) => {
       if (e.target.checked) {
-        selected = new Set(rowsData.map((_, idx) => idx));
+        for (const r of visible) selected.add(r.rowIndex);
       } else {
-        selected.clear();
+        for (const r of visible) selected.delete(r.rowIndex);
       }
-      renderTable();
+      renderTable(); // re-render checkboxes
       setSelCount();
     };
   }
@@ -215,14 +271,27 @@
     el('btnApplyBulk').onclick = async () => {
       if (selected.size === 0) { alert('Select at least one row.'); return; }
       const newType = el('bulkType').value;
-      const targets = Array.from(selected).map(i => rowsData[i].rowIndex);
-      for (const ri of targets) {
-        try { await updateMessageType(ri, newType); } catch(e) {}
+      const targets = Array.from(selected);
+
+      setProgress('Applying…');
+      try {
+        await bulkUpdateMessageType(targets, newType);
+      } catch (e) {
+        console.warn('bulkUpdateMessageType not available, falling back per-row.', e);
+        let done = 0;
+        for (const ri of targets) {
+          try { await updateMessageType(ri, newType); } catch(e){ console.error(e); }
+          done++; setProgress('Applying… '+done+'/'+targets.length);
+        }
       }
+      setProgress('');
       await fetchRecipients();
     };
+
     el('btnClearSel').onclick = () => { selected.clear(); renderTable(); setSelCount(); };
-    el('btnRefresh').onclick = fetchRecipients;
+    el('btnRefresh').onclick = () => { currentPage = 1; fetchRecipients(); };
+    el('prevPage').onclick = () => { currentPage--; clampPage(); renderTable(); updatePagerUI(); };
+    el('nextPage').onclick = () => { currentPage++; clampPage(); renderTable(); updatePagerUI(); };
   });
 
   fetchRecipients();
