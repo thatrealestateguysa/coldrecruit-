@@ -19,7 +19,6 @@
     .badge { background:#374151; color:#e5e7eb; padding:2px 8px; border-radius:9999px; font-size:12px; }
     table th, table td { white-space: nowrap; }
     .pill { padding:2px 8px; border-radius:9999px; border:1px solid #374151; }
-    .kbd { background:#1f2937; border:1px solid #374151; padding:1px 6px; border-radius:6px; font-size:11px; }
   </style>
 </head>
 <body class="min-h-screen">
@@ -30,7 +29,7 @@
         <img src="./assets/logo.png" alt="Recruit 101" class="h-10 w-auto rounded-md" />
         <div>
           <h1 class="text-xl font-semibold">Recruit 101</h1>
-          <div class="text-xs muted">v12.2</div>
+          <div class="text-xs muted">v12.3</div>
         </div>
       </div>
       <div class="flex items-center gap-2">
@@ -55,7 +54,7 @@
           <label class="text-sm block mb-1">Search (Name or Agency)</label>
           <div class="flex gap-2">
             <input id="q" class="rounded-md p-2 w-full" placeholder="Type to filter… (e.g. Ndlovu or 'Explore')" />
-            <span class="kbd">Enter</span>
+            <button id="btnClearQ" class="btn-lite px-2 py-2 rounded-md">Clear</button>
           </div>
         </div>
         <div>
@@ -101,17 +100,14 @@
   const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxPApgm_UeIU8rYA0TmqpSypOEUnLjSY86othzkrSBFvYcnNkjz54vgxhXcvotfuFoSCw/exec";
   const STATUS_OPTIONS = ["To Contact", "Whatsapp", "Reply", "Keen to meet", "Cultivate", "Invite to events", "Not interested", "No Whatsapp", "Unsubscribe", "Referred", "Event Invite Sent", "Event Invite Accepted"];
   const DEFAULT_AFTER_SEND = "Event Invite Sent";
-
-  // Forward gid from the page URL (example: index.html?gid=123456789)
   const GID = new URLSearchParams(location.search).get('gid');
 
   const PAGE_SIZE = 15;
   let currentPage = 1;
-  let rowsAll = [];   // unfiltered (latest fetch)
-  let rowsView = [];  // filtered view
-  let counts = {};    // status counts
+  let rowsAll = [];
+  let rowsView = [];
+  let counts = {};
 
-  // Elements
   const el = (id) => document.getElementById(id);
   const E = {
     afterStatus: el('afterStatus'),
@@ -121,6 +117,7 @@
     totalCount: el('totalCount'),
     resultCount: el('resultCount'),
     q: el('q'),
+    btnClearQ: el('btnClearQ'),
     fStatus: el('fStatus'),
     rows: el('rows'),
     pageInfo: el('pageInfo'),
@@ -131,9 +128,7 @@
   function optHtml(v, sel){ return '<option value="'+v.replaceAll('"','&quot;')+'" '+(sel?'selected':'')+'>'+v+'</option>'; }
 
   function initControls(){
-    // After-send status selector
     E.afterStatus.innerHTML = STATUS_OPTIONS.map(s => optHtml(s, s===DEFAULT_AFTER_SEND)).join('');
-    // Status filter dropdown (with All)
     E.fStatus.innerHTML = '<option value="">(All)</option>' + STATUS_OPTIONS.map(s => optHtml(s, false)).join('');
   }
 
@@ -145,20 +140,19 @@
     return url;
   }
 
-  // Fetch stats (with client fallback)
+  async function fetchJSON(url){
+    const res = await fetch(url.toString());
+    try { return await res.json(); } catch(e){ return {}; }
+  }
+
   async function fetchStats(){
-    try {
-      const url = buildUrl('stats');
-      const res = await fetch(url.toString());
-      const js = await res.json();
-      if (js && js.byStatus) {
-        counts = js.byStatus;
-        E.totalCount.textContent = js.total || 0;
-        renderStatusChips();
-        return;
-      }
-    } catch(e){ /* ignore */ }
-    // Fallback: compute from current rowsAll
+    const js = await fetchJSON(buildUrl('stats'));
+    if (js && js.byStatus) {
+      counts = js.byStatus;
+      E.totalCount.textContent = js.total || 0;
+      renderStatusChips();
+      return;
+    }
     counts = {};
     rowsAll.forEach(r => { const k = r.status || ''; counts[k] = (counts[k]||0)+1; });
     E.totalCount.textContent = rowsAll.length;
@@ -166,7 +160,6 @@
   }
 
   function renderStatusChips(){
-    const order = [''].concat(STATUS_OPTIONS); // include blank as "All"
     const chips = [];
     const total = Object.values(counts).reduce((a,b)=>a+b,0);
     chips.push({ key:'', label:'All', count: total });
@@ -182,25 +175,22 @@
       ch.addEventListener('click', () => {
         const key = ch.getAttribute('data-key');
         E.fStatus.value = key;
-        applyFilters();
+        loadRows();
       });
     });
   }
 
-  // Fetch recipients from server with filters (server-side) then apply client search
   async function loadRows(){
     const url = buildUrl('recipients');
     const status = (E.fStatus.value || '').trim();
     if (status) url.searchParams.set('status', status);
-    const res = await fetch(url.toString());
-    const js = await res.json();
+    const js = await fetchJSON(url);
     rowsAll = js.recipients || [];
-    await fetchStats(); // keep counts in sync
-    applyFilters(false); // do not reload again
+    await fetchStats();
+    applySearch();
   }
 
-  // Apply filters: client search across name or agency + current status dropdown selection already used server-side
-  function applyFilters(reload=true){
+  function applySearch(){
     const q = (E.q.value || '').trim().toLowerCase();
     rowsView = rowsAll.filter(r => {
       if (!q) return true;
@@ -212,7 +202,6 @@
     currentPage = 1;
     renderTable();
     updatePagerUI();
-    if (reload) loadRows(); // optional back-sync
   }
 
   function pageSlice(){
@@ -259,15 +248,19 @@
   function renderTable(){
     E.rows.innerHTML = '';
     const slice = pageSlice();
+    if (!slice.length){
+      E.rows.innerHTML = '<tr><td class="p-4 muted" colspan="8">No rows match your filters.</td></tr>';
+      return;
+    }
     slice.forEach(r => {
       const tr = document.createElement('tr');
       tr.className = 'border-b border-neutral-800';
 
-      // Message Type (read-only)
+      // Message Type
       const tdType = document.createElement('td'); tdType.className='p-2';
       tdType.innerHTML = '<span class="badge">'+(r.messageType || 'Recruit')+'</span>';
 
-      // Status (editable)
+      // Status
       const tdStatus = document.createElement('td'); tdStatus.className='p-2';
       tdStatus.innerHTML = selectHtml(STATUS_OPTIONS, r.status || '');
       const selStatus = tdStatus.querySelector('select');
@@ -277,7 +270,7 @@
         await loadRows();
       });
 
-      // WhatsApp button (window.open for reliability + validation)
+      // WhatsApp button
       const tdWA = document.createElement('td'); tdWA.className='p-2';
       const btnSend = document.createElement('button'); btnSend.className='btn px-3 py-1 rounded-md'; btnSend.textContent='Send';
       const link = r.waLink || "";
@@ -285,10 +278,8 @@
       if (!link || !valid) { btnSend.disabled = true; btnSend.title = 'No valid WhatsApp link'; }
       btnSend.addEventListener('click', async () => {
         if (!link || !valid) { alert('No valid WhatsApp link for this row.'); return; }
-        // Open WA first (user gesture)
         try { window.open(link, '_blank', 'noopener'); } catch(e){ /* ignore */ }
-        // Then update status
-        const st = E.afterStatus ? E.afterStatus.value : DEFAULT_AFTER_SEND;
+        const st = E.afterStatus ? E.afterStatus.value : "Event Invite Sent";
         try { await updateStatus(r.rowIndex, st); } catch(e){ console.error(e); }
         await loadRows();
       });
@@ -305,7 +296,7 @@
       const btnN = document.createElement('button'); btnN.className='btn-lite px-2 py-1 rounded-md'; btnN.textContent='Edit';
       btnN.addEventListener('click', async () => {
         const newNote = prompt('Edit note for '+(r.name||''), r.notes || '');
-        if (newNote === null) return; // cancelled
+        if (newNote === null) return;
         btnN.disabled = true;
         try { await updateNote(r.rowIndex, newNote); } catch (e) { console.error(e); }
         await loadRows();
@@ -325,18 +316,18 @@
     });
   }
 
-  // Debounce for search
   function debounce(fn, ms){ let t; return (...args)=>{ clearTimeout(t); t=setTimeout(()=>fn(...args), ms); }; }
-  const onSearchChanged = debounce(()=>applyFilters(), 250);
+  const onSearch = debounce(()=>applySearch(), 200);
 
-  // Wire events
   document.addEventListener('DOMContentLoaded', async () => {
     initControls();
-    E.q.addEventListener('input', onSearchChanged);
+    E.q.addEventListener('input', onSearch);
+    E.btnClearQ.addEventListener('click', () => { E.q.value = ''; applySearch(); });
     E.fStatus.addEventListener('change', () => loadRows());
+    E.prevPage.addEventListener('click', () => { currentPage--; renderTable(); updatePagerUI(); });
+    E.nextPage.addEventListener('click', () => { currentPage++; renderTable(); updatePagerUI(); });
     E.btnRefresh.addEventListener('click', async () => { await loadRows(); });
 
-    // First load
     await loadRows();
   });
 </script>
