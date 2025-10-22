@@ -97,7 +97,7 @@
   </div>
 
 <script>
-  const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzvl9L9Sg52CJYJ_m5NnuSCgFmQevxch5ym-7zT1MF43DPldvBJfTYuT9EpHnAcleTs0w/exec";
+  const WEB_APP_URL = "https://script.google.com/macros/s/AKfycby4SK5f2I8m3wwqIfItGxUXzHWeJHxkT0OqxRQn6TtylzQ6TqG0TBHpMfZhtQPTFhUIHw/exec";
   const MESSAGE_TYPES = ["Recruit", "Event 1 - Win Win"];
   const STATUS_OPTIONS = ["To Contact", "Whatsapp", "Reply", "Keen to meet", "Cultivate", "Invite to events", "Not interested", "No Whatsapp", "Unsubscribe", "Referred"];
 
@@ -117,7 +117,6 @@
     const start = (currentPage - 1) * PAGE_SIZE;
     return rowsData.slice(start, start + PAGE_SIZE);
   }
-
   function updatePagerUI(){
     clampPage();
     el('pageInfo').textContent = 'Page ' + currentPage + ' of ' + totalPages();
@@ -128,6 +127,7 @@
   async function fetchRecipients() {
     const url = new URL(WEB_APP_URL);
     url.searchParams.set('action','recipients');
+    url.searchParams.set('t', Date.now()); // cache-buster
     const res = await fetch(url.toString());
     const js = await res.json();
     rowsData = js.recipients || [];
@@ -184,7 +184,6 @@
       chk.addEventListener('change', () => {
         if (chk.checked) selected.add(r.rowIndex); else selected.delete(r.rowIndex);
         setSelCount();
-        // update "check all" based on visible page
         wireCheckAllState();
       });
       tdChk.appendChild(chk);
@@ -229,7 +228,6 @@
         tdWA.appendChild(span);
       }
 
-      // Name / Surname / Number / Agency
       const tdName = document.createElement('td'); tdName.className='p-2'; tdName.textContent = r.name || '';
       const tdSur  = document.createElement('td'); tdSur.className='p-2'; tdSur.textContent  = r.surname || '';
       const tdNum  = document.createElement('td'); tdNum.className='p-2'; tdNum.textContent  = r.cell || '';
@@ -247,7 +245,6 @@
       tb.appendChild(tr);
     });
 
-    // Wire Select All checkbox for the current page
     wireCheckAllState();
   }
 
@@ -262,7 +259,7 @@
       } else {
         for (const r of visible) selected.delete(r.rowIndex);
       }
-      renderTable(); // re-render checkboxes
+      renderTable();
       setSelCount();
     };
   }

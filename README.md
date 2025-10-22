@@ -1,8 +1,9 @@
 
-# Recruit 101 — Frontend (v9.2, 15 rows per page + bulk)
+# Recruit 101 — Frontend (v9.3, pagination + bulk + cache-bust)
 
-**Wired URL:** https://script.google.com/macros/s/AKfycbzvl9L9Sg52CJYJ_m5NnuSCgFmQevxch5ym-7zT1MF43DPldvBJfTYuT9EpHnAcleTs0w/exec
+**Wired URL:** https://script.google.com/macros/s/AKfycby4SK5f2I8m3wwqIfItGxUXzHWeJHxkT0OqxRQn6TtylzQ6TqG0TBHpMfZhtQPTFhUIHw/exec
 
-- **Fixed pagination:** 15 rows per page with Prev/Next. Selection is remembered across pages.
-- **Bulk Message Type:** applies to all selected rows (even across pages). Tries `bulkUpdateMessageType` then falls back per-row.
-- Per-row Message Type + Status dropdowns and "Send" behaviour unchanged.
+- Fixed **15 rows per page** with Prev/Next.
+- **Bulk Message Type** (tries backend `bulkUpdateMessageType`, falls back per-row).
+- Cache-busted fetch so you always see fresh WhatsApp links after updates.
+- Selection remembered across pages.
