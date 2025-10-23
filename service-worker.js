@@ -1,3 +1,3 @@
-self.addEventListener('install',e=>{e.waitUntil(caches.open('recruit101-v4').then(c=>c.addAll(['./','./index.html','./manifest.webmanifest','./assets/icon-192.png','./assets/icon-512.png','./assets/logo.svg'])))});
+self.addEventListener('install',e=>{e.waitUntil(caches.open('recruit101-v5').then(c=>c.addAll(['./','./index.html','./manifest.webmanifest','./assets/icon-192.png','./assets/icon-512.png','./assets/logo.svg'])))});
 self.addEventListener('activate', e=>e.waitUntil(self.clients.claim()));
 self.addEventListener('fetch', e=>{const u=new URL(e.request.url); if(u.searchParams.get('action')) return; e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request)));});

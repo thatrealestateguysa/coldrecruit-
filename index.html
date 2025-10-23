@@ -34,10 +34,14 @@ a.link{color:#93c5fd;text-decoration:underline} a.link:hover{color:#bfdbfe}
       <img src="./assets/logo.svg" alt="logo" class="h-7"/>
       <div>
         <h1 class="text-xl font-semibold">Recruit 101</h1>
-        <div class="text-xs text-slate-300" id="env">v21.2 — new-tab send, no hard resets</div>
+        <div class="text-xs text-slate-300" id="env">v21.3 — second-window send + no resets</div>
       </div>
     </div>
-    <div class="flex items-center gap-2">
+    <div class="flex items-center gap-3">
+      <label class="flex items-center gap-2 text-xs text-slate-200">
+        <input id="useApp" type="checkbox"/>
+        Open via WhatsApp Desktop (app)
+      </label>
       <button id="install" class="btn-ghost hidden">Install app</button>
       <button id="refresh" class="btn">Refresh</button>
     </div>
@@ -127,6 +131,12 @@ window.addEventListener('beforeinstallprompt', (e) => {
   };
 });
 
+// Persist setting
+const store = {
+  get(k){ try{ return JSON.parse(localStorage.getItem(k)||"null"); }catch(_){ return null; } },
+  set(k,v){ localStorage.setItem(k, JSON.stringify(v)); }
+};
+
 const STATUS_OPTIONS=["To Contact","Whatsapp","Reply","Keen to meet","Cultivate","Invite to events","Not interested","No Whatsapp","Unsubscribe","Referred","Event Invite Sent","Event Invite Accepted"];
 const PAGE=15;
 const EXEC_LOCKED="https://script.google.com/macros/s/AKfycby981SXO1xO0xGWs-HkD2wGePSwRg1AbRFrbAQul8c2dirHhpssESwOTbb0Go2rHcjE/exec";
@@ -135,7 +145,7 @@ const qs=new URLSearchParams(location.search);
 const $=id=>document.getElementById(id);
 const E={ refresh:$("refresh"), gridStatus:$("gridStatus"), gridTags:$("gridTags"), q:$("q"), clear:$("clear"), f:$("f"), ftag:$("ftag"),
            err:$("err"), help:$("help"), rows:$("rows"), total:$("total"), filtered:$("filtered"), prev:$("prev"),
-           next:$("next"), page:$("page"), apiBadge:$("apiBadge") };
+           next:$("next"), page:$("page"), apiBadge:$("apiBadge"), useApp:$("useApp") };
 
 let all=[], view=[], page=1, counts={}, tagCounts={}, activeStatus="", activeTag="", LAST_SEND_TS=0;
 
@@ -189,8 +199,7 @@ async function refreshStatsInBackground(){
     counts=s.byStatus||counts;
     tagCounts=s.byTag||tagCounts;
     E.total.textContent=s.total||E.total.textContent;
-    renderStatusGrid();
-    renderTagGrid();
+    renderStatusGrid(); renderTagGrid();
   }catch(_){/*silent*/}
 }
 
@@ -232,6 +241,29 @@ function setPage(){
 }
 function rowId(r){ return r.rowNumber || (r.rowIndex!=null ? (r.rowIndex+2) : null); }
 
+function parseWa(waLink){
+  try{
+    const u=new URL(waLink);
+    // wa.me/<phone>?text=...
+    const phone=u.pathname.replace(/\//g,'').trim();
+    const text=u.searchParams.get('text')||'';
+    return { phone, text };
+  }catch(_){
+    return { phone:"", text:"" };
+  }
+}
+
+function openSecondWindow(url){
+  // Guaranteed second tab: open blank first, then assign
+  const w = window.open('about:blank', '_blank', 'noopener');
+  if (w) { try{ w.opener=null; w.location.href=url; }catch(_){ w.location = url; } return true; }
+  // Fallback anchor
+  const a=document.createElement('a');
+  a.href=url; a.target='_blank'; a.rel='noopener noreferrer';
+  document.body.appendChild(a); a.click(); a.remove();
+  return false;
+}
+
 async function changeStatus(r,newStatus,control){
   const rn=rowId(r); if(!rn) return; control && (control.disabled=true);
   const oldStatus = r.status || "";
@@ -242,7 +274,6 @@ async function changeStatus(r,newStatus,control){
   counts[newStatus] = (counts[newStatus]||0) + 1;
   renderStatusGrid();
 
-  // If filtered by active status, remove row quietly
   const active = (E.f.value||"");
   if (active && newStatus !== active){
     const rid = rn; all = all.filter(x => rowId(x)!== rid); view = view.filter(x => rowId(x)!== rid);
@@ -251,20 +282,9 @@ async function changeStatus(r,newStatus,control){
     draw();
   }
 
-  try{
-    await jpost("updateSingleStatus", {rowNumber: rn, newStatus});
-    refreshStatsInBackground(); // no hard reload
-  }catch(e){
-    console.error(e);
-    // On failure, revert local change
-    r.status = oldStatus;
-    counts[newStatus] = Math.max(0,(counts[newStatus]||0)-1);
-    counts[oldStatus] = (counts[oldStatus]||0)+1;
-    renderStatusGrid();
-    draw();
-  }finally{
-    control && (control.disabled=false);
-  }
+  try{ await jpost("updateSingleStatus", {rowNumber: rn, newStatus}); refreshStatsInBackground(); }
+  catch(e){ console.error(e); r.status = oldStatus; counts[newStatus] = Math.max(0,(counts[newStatus]||0)-1); counts[oldStatus] = (counts[oldStatus]||0)+1; renderStatusGrid(); draw(); }
+  finally{ control && (control.disabled=false); }
 }
 
 async function editTags(r,btn){
@@ -277,13 +297,11 @@ async function editTags(r,btn){
   try{
     await jpost("updateTags", {rowNumber: rn, tags});
     r.tags = tags;
-    // Update tag counts optimistically
     tagCounts={}; all.forEach(x => (x.rowNumber===rn? (x.tags=tags):null));
     all.forEach(x => (x.tags||[]).forEach(t=> tagCounts[t]=(tagCounts[t]||0)+1 ));
     renderTagGrid();
-    apply(false); draw();
-    refreshStatsInBackground();
-  }catch(e){ console.error(e); /* keep old */ }
+    apply(false); draw(); refreshStatsInBackground();
+  }catch(e){ console.error(e); }
   finally{ btn.disabled=false; }
 }
 
@@ -302,8 +320,7 @@ function draw(){
 
     const tdStatus=document.createElement("td"); tdStatus.className="p-2";
     tdStatus.innerHTML=`<select class="select">${STATUS_OPTIONS.map(s=>`<option value="${s}"${s===(r.status||"")?" selected":""}>${s}</option>`).join("")}</select>`;
-    const sel=tdStatus.querySelector("select");
-    sel.onchange=()=>changeStatus(r, sel.value, sel);
+    const sel=tdStatus.querySelector("select"); sel.onchange=()=>changeStatus(r, sel.value, sel);
 
     const tdTags=document.createElement("td"); tdTags.className="p-2";
     const list=document.createElement("div"); list.className="flex flex-wrap";
@@ -317,9 +334,15 @@ function draw(){
     const ok=/^https:\/\/(wa\.me|web\.whatsapp\.com|api\.whatsapp\.com)\//.test(link);
     if(!ok) btn.disabled=true;
     btn.onclick=()=>{
-      if(Date.now()-LAST_SEND_TS<400) return; LAST_SEND_TS=Date.now();
-      const w = window.open(link, "_blank", "noopener");
-      if(!w) location.assign(link); // fallback if blocked
+      if(Date.now()-LAST_SEND_TS<350) return; LAST_SEND_TS=Date.now();
+      if (E.useApp.checked) {
+        const p=parseWa(link);
+        const appUrl = `whatsapp://send?phone=${encodeURIComponent(p.phone)}&text=${encodeURIComponent(p.text)}`;
+        const opened = openSecondWindow(appUrl);
+        if(!opened) openSecondWindow(link); // fallback to web
+      } else {
+        openSecondWindow(link);
+      }
     };
 
     const tdName=document.createElement("td"); tdName.className="p-2"; tdName.textContent=r.name||"";
@@ -340,6 +363,9 @@ function draw(){
 
 document.addEventListener("DOMContentLoaded", async ()=>{
   setBadge();
+  E.useApp.checked = !!(store.get('useApp'));
+  E.useApp.onchange = ()=> store.set('useApp', E.useApp.checked);
+
   document.getElementById("f").innerHTML='<option value="">(All)</option>'+STATUS_OPTIONS.map(s=>opt(s,false)).join("");
   document.getElementById("ftag").innerHTML='<option value="">(All)</option>';
   E.q.oninput=()=>apply(); E.clear.onclick=()=>{E.q.value=""; apply();}; 
