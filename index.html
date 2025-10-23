@@ -25,16 +25,17 @@ html,body{background:var(--bg);color:var(--text);font-family:Inter,system-ui,Seg
 .sticky-head{position:sticky;top:0;background:var(--panel);z-index:10}
 a.link{color:#93c5fd;text-decoration:underline} a.link:hover{color:#bfdbfe}
 .tag{background:#0b1220;border:1px solid #334155;border-radius:999px;padding:.15rem .5rem;font-size:.7rem;margin-right:.25rem}
+.logo{height:40px;filter:drop-shadow(0 0 2px rgba(0,0,0,.35));}
 </style>
 </head>
 <body class="min-h-screen">
 <div class="max-w-7xl mx-auto p-4 space-y-4">
   <header class="flex items-center justify-between gap-3 flex-wrap">
     <div class="flex items-center gap-3">
-      <img src="./assets/logo.svg" alt="logo" class="h-7"/>
+      <img src="./assets/kw-explore.png" alt="KW Explore" class="logo"/>
       <div>
         <h1 class="text-xl font-semibold">Recruit 101</h1>
-        <div class="text-xs text-slate-300" id="env">v21.3 — second-window send + no resets</div>
+        <div class="text-xs text-slate-300" id="env">v21.4 — named popup + refocus</div>
       </div>
     </div>
     <div class="flex items-center gap-3">
@@ -117,26 +118,6 @@ a.link{color:#93c5fd;text-decoration:underline} a.link:hover{color:#bfdbfe}
 </div>
 
 <script>
-// PWA install
-let deferredPrompt=null;
-window.addEventListener('beforeinstallprompt', (e) => {
-  e.preventDefault();
-  deferredPrompt = e;
-  const btn = document.getElementById('install');
-  btn.classList.remove('hidden');
-  btn.onclick = async () => {
-    btn.disabled = true;
-    try{ await deferredPrompt.prompt(); await deferredPrompt.userChoice; }
-    finally{ deferredPrompt=null; btn.classList.add('hidden'); btn.disabled=false; }
-  };
-});
-
-// Persist setting
-const store = {
-  get(k){ try{ return JSON.parse(localStorage.getItem(k)||"null"); }catch(_){ return null; } },
-  set(k,v){ localStorage.setItem(k, JSON.stringify(v)); }
-};
-
 const STATUS_OPTIONS=["To Contact","Whatsapp","Reply","Keen to meet","Cultivate","Invite to events","Not interested","No Whatsapp","Unsubscribe","Referred","Event Invite Sent","Event Invite Accepted"];
 const PAGE=15;
 const EXEC_LOCKED="https://script.google.com/macros/s/AKfycby981SXO1xO0xGWs-HkD2wGePSwRg1AbRFrbAQul8c2dirHhpssESwOTbb0Go2rHcjE/exec";
@@ -156,21 +137,10 @@ function apiUrl(action, params={}){
   const u=new URL(getExec()); if(action) u.searchParams.set("action", action);
   const gid=getGid(); if(gid) u.searchParams.set("gid", gid);
   for(const [k,v] of Object.entries(params||{})) u.searchParams.set(k,v);
-  u.searchParams.set("t", Date.now());
-  return u.toString();
+  u.searchParams.set("t", Date.now()); return u.toString();
 }
-async function jget(action, params={}){
-  const url=apiUrl(action, params);
-  const res=await fetch(url, { mode:'cors' });
-  if(!res.ok) throw new Error(res.status+" "+res.statusText);
-  return res.json();
-}
-async function jpost(action, payload={}){
-  const url=apiUrl();
-  const res=await fetch(url, { method:'POST', body: JSON.stringify({action, payload}), mode:'cors' });
-  if(!res.ok) throw new Error(res.status+" "+res.statusText);
-  return res.json();
-}
+async function jget(action, params={}){ const res=await fetch(apiUrl(action, params), {mode:'cors'}); if(!res.ok) throw new Error(res.status); return res.json(); }
+async function jpost(action, payload={}){ const res=await fetch(apiUrl(), {method:'POST', body:JSON.stringify({action,payload}), mode:'cors'}); if(!res.ok) throw new Error(res.status); return res.json(); }
 
 function opt(v,s){return `<option value="${v}"${s?' selected':''}>${v}</option>`}
 function chip(label,count,active){return `<div class="tile ${active?'active':''}" data-k="${label}"><span class="label">${label||'All'}</span><span class="count">${count||0}</span></div>`}
@@ -180,37 +150,23 @@ function renderStatusGrid(){
   const tiles=[{k:"", l:"All", c:total}];
   STATUS_OPTIONS.forEach(s=>tiles.push({k:s,l:s,c:(counts[s]||0)}));
   E.gridStatus.innerHTML=tiles.map(t=>`<div class="tile ${t.k===activeStatus?'active':''}" data-k="${t.k}"><span class="label">${t.l}</span><span class="count">${t.c}</span></div>`).join("");
-  [...E.gridStatus.querySelectorAll(".tile")].forEach(tile=>{
-    tile.onclick=()=>{ activeStatus = tile.dataset.k || ""; E.f.value = activeStatus; load(); };
-  });
+  [...E.gridStatus.querySelectorAll(".tile")].forEach(tile=>{ tile.onclick=()=>{ activeStatus = tile.dataset.k || ""; E.f.value = activeStatus; load(); }; });
 }
 function renderTagGrid(){
   const totalTags = Object.values(tagCounts).reduce((a,b)=>a+b,0);
   const keys = ["", ...Object.keys(tagCounts).sort((a,b)=>(a||"").localeCompare(b||""))];
   E.gridTags.innerHTML=keys.map(k=>chip(k, k?tagCounts[k]:totalTags, (k||"")===(activeTag||""))).join("");
-  [...E.gridTags.querySelectorAll(".tile")].forEach(tile=>{
-    tile.onclick=()=>{ activeTag = tile.dataset.k || ""; E.ftag.value = activeTag; apply(false); draw(); };
-  });
+  [...E.gridTags.querySelectorAll(".tile")].forEach(tile=>{ tile.onclick=()=>{ activeTag = tile.dataset.k || ""; E.ftag.value = activeTag; apply(false); draw(); }; });
 }
-
-async function refreshStatsInBackground(){
-  try{
-    const s=await jget("stats");
-    counts=s.byStatus||counts;
-    tagCounts=s.byTag||tagCounts;
-    E.total.textContent=s.total||E.total.textContent;
-    renderStatusGrid(); renderTagGrid();
-  }catch(_){/*silent*/}
-}
-
+async function refreshStatsInBackground(){ try{ const s=await jget("stats"); counts=s.byStatus||counts; tagCounts=s.byTag||tagCounts; E.total.textContent=s.total||E.total.textContent; renderStatusGrid(); renderTagGrid(); }catch(_){ } }
 async function load(){
-  E.err.textContent = ""; E.help.textContent="";
+  E.err.textContent=""; E.help.textContent="";
   try{
     const status=(E.f.value||"").trim();
-    const js=await jget("recipients", status?{status}:{});
-    const oldPage = page; // keep current page
+    const js=await jget("recipients", status?{status}:{ });
+    const oldPage = page;
     all=(js.recipients||[]).map(r=>({ ...r, tags: Array.isArray(r.tags)? r.tags : String(r.tags||'').split(',').map(x=>x.trim()).filter(Boolean) }));
-    apply(false); // don't reset page
+    apply(false);
     page = Math.max(1, Math.min(oldPage, Math.ceil(view.length/PAGE)||1));
     draw();
     refreshStatsInBackground();
@@ -220,7 +176,6 @@ async function load(){
     E.help.innerHTML = `<div>Open backend: <a class="link" target="_blank" rel="noopener" href="${statsUrl}">${statsUrl}</a></div>`;
   }
 }
-
 function apply(resetPage=true){
   const q=(E.q.value||"").toLowerCase().trim();
   view=all.filter(r=>{
@@ -231,7 +186,6 @@ function apply(resetPage=true){
   E.filtered.textContent=view.length;
   if (resetPage) page=1;
 }
-
 function pageSlice(){ const s=(page-1)*PAGE; return view.slice(s,s+PAGE); }
 function setPage(){
   const max=Math.max(1,Math.ceil(view.length/PAGE));
@@ -240,53 +194,47 @@ function setPage(){
   E.prev.disabled=page<=1; E.next.disabled=page>=max;
 }
 function rowId(r){ return r.rowNumber || (r.rowIndex!=null ? (r.rowIndex+2) : null); }
-
 function parseWa(waLink){
   try{
     const u=new URL(waLink);
-    // wa.me/<phone>?text=...
-    const phone=u.pathname.replace(/\//g,'').trim();
+    const phone=u.pathname.replace(/\\//g,'').trim();
     const text=u.searchParams.get('text')||'';
     return { phone, text };
-  }catch(_){
-    return { phone:"", text:"" };
-  }
+  }catch(_){ return { phone:"", text:"" }; }
 }
-
-function openSecondWindow(url){
-  // Guaranteed second tab: open blank first, then assign
-  const w = window.open('about:blank', '_blank', 'noopener');
-  if (w) { try{ w.opener=null; w.location.href=url; }catch(_){ w.location = url; } return true; }
-  // Fallback anchor
+// Named popup + refocus dashboard
+function openWhatsAppWindow(url){
+  const features = 'popup=yes,noopener,noreferrer,width=980,height=820,left=60,top=40,menubar=no,toolbar=no,location=yes,status=no,scrollbars=yes,resizable=yes';
+  let w=null;
+  try{ w = window.open('about:blank','kw_whatsapp',features); }catch(_){}
+  if (w){
+    try{ w.opener=null; }catch(_){}
+    try{ w.location.href=url; }catch(_){ w.location = url; }
+    setTimeout(()=>{ try{ w.blur(); }catch(_){ } try{ window.focus(); }catch(_){ } }, 250);
+    return true;
+  }
   const a=document.createElement('a');
-  a.href=url; a.target='_blank'; a.rel='noopener noreferrer';
+  a.href=url; a.target='kw_whatsapp'; a.rel='noopener noreferrer';
   document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>{ try{ window.focus(); }catch(_){ } }, 250);
   return false;
 }
-
 async function changeStatus(r,newStatus,control){
   const rn=rowId(r); if(!rn) return; control && (control.disabled=true);
   const oldStatus = r.status || "";
   r.status = newStatus;
-
-  // Optimistic counts
   if (oldStatus && counts[oldStatus]>0) counts[oldStatus] = (counts[oldStatus]||0) - 1;
   counts[newStatus] = (counts[newStatus]||0) + 1;
   renderStatusGrid();
-
   const active = (E.f.value||"");
   if (active && newStatus !== active){
     const rid = rn; all = all.filter(x => rowId(x)!== rid); view = view.filter(x => rowId(x)!== rid);
     draw();
-  } else {
-    draw();
-  }
-
+  } else { draw(); }
   try{ await jpost("updateSingleStatus", {rowNumber: rn, newStatus}); refreshStatsInBackground(); }
   catch(e){ console.error(e); r.status = oldStatus; counts[newStatus] = Math.max(0,(counts[newStatus]||0)-1); counts[oldStatus] = (counts[oldStatus]||0)+1; renderStatusGrid(); draw(); }
   finally{ control && (control.disabled=false); }
 }
-
 async function editTags(r,btn){
   const rn=rowId(r); if(!rn) return;
   const existing=(r.tags||[]).join(", ");
@@ -304,7 +252,6 @@ async function editTags(r,btn){
   }catch(e){ console.error(e); }
   finally{ btn.disabled=false; }
 }
-
 function draw(){
   E.rows.innerHTML="";
   const rows=pageSlice();
@@ -338,10 +285,10 @@ function draw(){
       if (E.useApp.checked) {
         const p=parseWa(link);
         const appUrl = `whatsapp://send?phone=${encodeURIComponent(p.phone)}&text=${encodeURIComponent(p.text)}`;
-        const opened = openSecondWindow(appUrl);
-        if(!opened) openSecondWindow(link); // fallback to web
+        const opened = openWhatsAppWindow(appUrl);
+        if(!opened) openWhatsAppWindow(link);
       } else {
-        openSecondWindow(link);
+        openWhatsAppWindow(link);
       }
     };
 
@@ -362,9 +309,13 @@ function draw(){
 }
 
 document.addEventListener("DOMContentLoaded", async ()=>{
-  setBadge();
-  E.useApp.checked = !!(store.get('useApp'));
-  E.useApp.onchange = ()=> store.set('useApp', E.useApp.checked);
+  const ex = "https://script.google.com/macros/s/AKfycby981SXO1xO0xGWs-HkD2wGePSwRg1AbRFrbAQul8c2dirHhpssESwOTbb0Go2rHcjE/exec";
+  const badge = document.getElementById("apiBadge");
+  badge.textContent = ex.replace(/^https?:\/\//,'');
+  badge.classList.remove('hidden');
+
+  E.useApp.checked = !!(localStorage.getItem('useApp')==='true');
+  E.useApp.onchange = ()=> localStorage.setItem('useApp', E.useApp.checked?'true':'false');
 
   document.getElementById("f").innerHTML='<option value="">(All)</option>'+STATUS_OPTIONS.map(s=>opt(s,false)).join("");
   document.getElementById("ftag").innerHTML='<option value="">(All)</option>';
