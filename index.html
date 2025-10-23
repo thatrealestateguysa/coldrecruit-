@@ -31,12 +31,10 @@ a.link{color:#93c5fd;text-decoration:underline} a.link:hover{color:#bfdbfe}
       <img src="./assets/logo.svg" alt="logo" class="h-7"/>
       <div>
         <h1 class="text-xl font-semibold">Recruit 101</h1>
-        <div class="text-xs text-slate-300" id="env">v20.2</div>
+        <div class="text-xs text-slate-300" id="env">v20.3</div>
       </div>
     </div>
     <div class="flex items-center gap-2">
-      <label class="text-sm">After-send status</label>
-      <select id="after" class="select"></select>
       <button id="refresh" class="btn">Refresh</button>
     </div>
   </header>
@@ -96,12 +94,12 @@ a.link{color:#93c5fd;text-decoration:underline} a.link:hover{color:#bfdbfe}
 
 <script>
 const STATUS_OPTIONS=["To Contact","Whatsapp","Reply","Keen to meet","Cultivate","Invite to events","Not interested","No Whatsapp","Unsubscribe","Referred","Event Invite Sent","Event Invite Accepted"];
-const DEFAULT_AFTER="Event Invite Sent"; const PAGE=15;
+const PAGE=15;
 const EXEC_LOCKED="https://script.google.com/macros/s/AKfycbw9OkQIE3-fuVQjnBgeq_oHn3CkTWuA-RHZHujzx9_HI69kxFS_lMxuXptKwCO5eBSgQA/exec";
 
 const qs=new URLSearchParams(location.search);
 const $=id=>document.getElementById(id);
-const E={ after:$("after"), refresh:$("refresh"), grid:$("grid"), q:$("q"), clear:$("clear"), f:$("f"),
+const E={ refresh:$("refresh"), grid:$("grid"), q:$("q"), clear:$("clear"), f:$("f"),
            err:$("err"), help:$("help"), rows:$("rows"), total:$("total"), filtered:$("filtered"), prev:$("prev"),
            next:$("next"), page:$("page"), apiBadge:$("apiBadge") };
 
@@ -132,7 +130,6 @@ async function jpost(action, payload={}){
 }
 function opt(v,s){return `<option value="${v}"${s?' selected':''}>${v}</option>`}
 
-// grid
 function renderGrid(){
   const total=Object.values(counts).reduce((a,b)=>a+b,0);
   const tiles=[{k:"", l:"All", c:total}];
@@ -146,14 +143,12 @@ function renderGrid(){
   });
 }
 
-// stats
 async function stats(){
   try{ const s=await jget("stats"); counts=s.byStatus||{}; E.total.textContent=s.total||0; }
   catch(e){ counts={}; all.forEach(r=>counts[r.status]=(counts[r.status]||0)+1); E.total.textContent=all.length; }
   renderGrid();
 }
 
-// load/apply
 async function load(){
   E.err.textContent = ""; E.help.textContent="";
   try{
@@ -182,18 +177,17 @@ function setPage(){
 }
 function rowId(r){ return r.rowNumber || (r.rowIndex!=null ? (r.rowIndex+2) : null); }
 
-// INSTANT MOVE: optimistic status change
+// Manual status change (instant move)
 async function changeStatus(r,newStatus,control){
   const rn=rowId(r); if(!rn) return; control && (control.disabled=true);
   const oldStatus = r.status || "";
   r.status = newStatus;
 
-  // update counts immediately
+  // update counts instantly
   if (oldStatus && counts[oldStatus]>0) counts[oldStatus] = (counts[oldStatus]||0) - 1;
   counts[newStatus] = (counts[newStatus]||0) + 1;
   renderGrid();
 
-  // if a status filter is active and new status doesn't match, remove from current view instantly
   const active = (E.f.value||"");
   if (active && newStatus !== active){
     const rid = rn;
@@ -201,19 +195,13 @@ async function changeStatus(r,newStatus,control){
     view = view.filter(x => rowId(x)!== rid);
     draw();
   } else {
-    // just redraw row with new status
     draw();
   }
 
-  // persist to backend; if it fails, reload to truth
   try{
     await jpost("updateSingleStatus", {rowNumber: rn, newStatus});
-    // Also refresh stats to be exact with backend
     await stats();
-    if (active) {
-      // reload filtered list to keep pagination sane
-      await load();
-    }
+    if (active) await load();
   }catch(e){
     console.error(e);
     await load();
@@ -222,7 +210,6 @@ async function changeStatus(r,newStatus,control){
   }
 }
 
-// draw
 function draw(){
   E.rows.innerHTML="";
   const rows=pageSlice();
@@ -248,7 +235,7 @@ function draw(){
     btn.onclick=async()=>{
       if(Date.now()-LAST_SEND_TS<900) return; LAST_SEND_TS=Date.now();
       let phone="",text="";
-      try{ const u=new URL(link); 
+      try{ const u=new URL(link);
            if(u.hostname==="wa.me"){ phone=(u.pathname||"/").replace("/","").replace(/\D/g,""); text=u.searchParams.get("text")||""; }
            else { phone=(u.searchParams.get("phone")||"").replace(/\D/g,""); text=u.searchParams.get("text")||""; }
       }catch(_){}
@@ -258,7 +245,7 @@ function draw(){
       try{ window.location.href=`whatsapp://send?phone=${phone}&text=${txt}`;
            setTimeout(()=>{ if(!document.hidden) window.open(`https://web.whatsapp.com/send?phone=${phone}&text=${txt}`,"_blank","noopener"); }, 900);
       }catch(_){ try{ window.open(`https://web.whatsapp.com/send?phone=${phone}&text=${txt}`,"_blank","noopener"); }catch(__){} }
-      await changeStatus(r, (document.getElementById("after").value||DEFAULT_AFTER), btn);
+      // NOTE: no status change here (manual only)
     };
     tdWA.appendChild(btn);
 
@@ -278,9 +265,7 @@ function draw(){
   setPage();
 }
 
-// boot
 document.addEventListener("DOMContentLoaded", async ()=>{
-  document.getElementById("after").innerHTML=STATUS_OPTIONS.map(s=>opt(s,s===DEFAULT_AFTER)).join("");
   document.getElementById("f").innerHTML='<option value="">(All)</option>'+STATUS_OPTIONS.map(s=>opt(s,false)).join("");
   E.q.oninput=()=>apply(); E.clear.onclick=()=>{E.q.value=""; apply();}; E.f.onchange=()=>{ activeStatus=E.f.value||""; load(); };
   E.prev.onclick=()=>{page--; draw();}; E.next.onclick=()=>{page++; draw();}; E.refresh.onclick=()=>load();
