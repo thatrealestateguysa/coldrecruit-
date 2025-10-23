@@ -1,31 +1,28 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/>
 <title>Recruit 101</title>
-<link rel="icon" href="./assets/icon.png">
-<link rel="manifest" href="./manifest.webmanifest">
-<script>if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('./service-worker.js').catch(console.error));}</script>
+<link rel="icon" href="./assets/icon.png"><link rel="manifest" href="./manifest.webmanifest">
+<script>if('serviceWorker' in navigator){{window.addEventListener('load',()=>navigator.serviceWorker.register('./service-worker.js').catch(()=>{{}}));}}</script>
 <script src="https://cdn.tailwindcss.com"></script>
 <style>
-:root{ --bg:#0b0c10;--panel:#0f172a;--panel2:#0b1220;--border:#1f2937;--text:#f8fafc;--muted:#e2e8f0;--chip:#334155;--chipText:#f1f5f9;--accent:#e11d48;}
-html,body{background:var(--bg);color:var(--text);font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
-.card{background:var(--panel);border:1px solid var(--border)}
-.badge{background:var(--chip);color:var(--chipText);border-radius:9999px;padding:6px 10px;font-size:.75rem}
-.btn{background:var(--accent);color:#fff;border-radius:.6rem;padding:.55rem .9rem}
-.btn:disabled{opacity:.5;cursor:not-allowed}
-.btn-ghost{background:#1f2937;color:#e2e8f0;border:1px solid #334155;border-radius:.6rem;padding:.5rem .8rem}
-.input,.select{background:var(--panel2);border:1px solid #64748b;border-radius:.6rem;padding:.6rem .7rem;color:#fff}
-.table-head{background:rgba(255,255,255,.04);color:var(--muted)}
-.tile{display:flex;align-items:center;justify-content:space-between;gap:.5rem;background:#1e293b;border:1px solid #334155;border-radius:.75rem;padding:.5rem .7rem;cursor:pointer;user-select:none}
-.tile:hover{border-color:#94a3b8}
-.tile.active{background:#e11d48;border-color:#e11d48}
-.tile .label{font-weight:600}.tile .count{background:rgba(255,255,255,.12);padding:.1rem .5rem;border-radius:9999px}
-.sticky-head{position:sticky;top:0;background:var(--panel);z-index:10}
-a.link{color:#93c5fd;text-decoration:underline} a.link:hover{color:#bfdbfe}
-.tag{background:#0b1220;border:1px solid #334155;border-radius:999px;padding:.15rem .5rem;font-size:.7rem;margin-right:.25rem}
-.logo{height:40px;filter:drop-shadow(0 0 2px rgba(0,0,0,.35));}
+:root{{ --bg:#0b0c10;--panel:#0f172a;--panel2:#0b1220;--border:#1f2937;--text:#f8fafc;--muted:#e2e8f0;--chip:#334155;--chipText:#f1f5f9;--accent:#e11d48;}}
+html,body{{background:var(--bg);color:var(--text);font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif}}
+.card{{background:var(--panel);border:1px solid var(--border)}}
+.badge{{background:var(--chip);color:var(--chipText);border-radius:9999px;padding:6px 10px;font-size:.75rem}}
+.btn{{background:var(--accent);color:#fff;border-radius:.6rem;padding:.55rem .9rem}}
+.btn:disabled{{opacity:.5;cursor:not-allowed}}
+.btn-ghost{{background:#1f2937;color:#e2e8f0;border:1px solid #334155;border-radius:.6rem;padding:.5rem .8rem}}
+.input,.select{{background:var(--panel2);border:1px solid #64748b;border-radius:.6rem;padding:.6rem .7rem;color:#fff}}
+.table-head{{background:rgba(255,255,255,.04);color:var(--muted)}}
+.tile{{display:flex;align-items:center;justify-content:space-between;gap:.5rem;background:#1e293b;border:1px solid #334155;border-radius:.75rem;padding:.5rem .7rem;cursor:pointer;user-select:none}}
+.tile:hover{{border-color:#94a3b8}} .tile.active{{background:#e11d48;border-color:#e11d48}}
+.tile .label{{font-weight:600}} .tile .count{{background:rgba(255,255,255,.12);padding:.1rem .5rem;border-radius:9999px}}
+.sticky-head{{position:sticky;top:0;background:var(--panel);z-index:10}}
+a.link{{color:#93c5fd;text-decoration:underline}} a.link:hover{{color:#bfdbfe}}
+.tag{{background:#0b1220;border:1px solid #334155;border-radius:999px;padding:.15rem .5rem;font-size:.7rem;margin-right:.25rem}}
+.logo{{height:40px;filter:drop-shadow(0 0 2px rgba(0,0,0,.35));}}
 </style>
 </head>
 <body class="min-h-screen">
@@ -33,17 +30,9 @@ a.link{color:#93c5fd;text-decoration:underline} a.link:hover{color:#bfdbfe}
   <header class="flex items-center justify-between gap-3 flex-wrap">
     <div class="flex items-center gap-3">
       <img src="./assets/kw-explore.png" alt="KW Explore" class="logo"/>
-      <div>
-        <h1 class="text-xl font-semibold">Recruit 101</h1>
-        <div class="text-xs text-slate-300" id="env">v21.4 — named popup + refocus</div>
-      </div>
+      <div><h1 class="text-xl font-semibold">Recruit 101</h1><div class="text-xs text-slate-300" id="env">v21.5 — desktop-first popup</div></div>
     </div>
     <div class="flex items-center gap-3">
-      <label class="flex items-center gap-2 text-xs text-slate-200">
-        <input id="useApp" type="checkbox"/>
-        Open via WhatsApp Desktop (app)
-      </label>
-      <button id="install" class="btn-ghost hidden">Install app</button>
       <button id="refresh" class="btn">Refresh</button>
     </div>
   </header>
@@ -55,15 +44,6 @@ a.link{color:#93c5fd;text-decoration:underline} a.link:hover{color:#bfdbfe}
       <span id="apiBadge" class="badge hidden"></span>
     </div>
 
-    <div>
-      <div class="text-xs text-slate-300 mb-1">Primary status</div>
-      <div id="gridStatus" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-2"></div>
-    </div>
-    <div>
-      <div class="text-xs text-slate-300 mb-1">Tags (multi)</div>
-      <div id="gridTags" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-2"></div>
-    </div>
-
     <div class="grid md:grid-cols-3 gap-2 items-end">
       <div class="md:col-span-2">
         <label class="text-sm">Search (Name or Agency)</label>
@@ -72,15 +52,9 @@ a.link{color:#93c5fd;text-decoration:underline} a.link:hover{color:#bfdbfe}
           <button id="clear" class="badge">Clear</button>
         </div>
       </div>
-      <div class="grid grid-cols-2 gap-2">
-        <div>
-          <label class="text-sm">Status</label>
-          <select id="f" class="select w-full"></select>
-        </div>
-        <div>
-          <label class="text-sm">Tag</label>
-          <select id="ftag" class="select w-full"></select>
-        </div>
+      <div>
+        <label class="text-sm">Status</label>
+        <select id="f" class="select w-full"></select>
       </div>
     </div>
     <div id="err" class="text-xs text-rose-400"></div>
@@ -94,7 +68,6 @@ a.link{color:#93c5fd;text-decoration:underline} a.link:hover{color:#bfdbfe}
           <tr class="border-b border-slate-800">
             <th class="p-2 text-left">Message Type</th>
             <th class="p-2 text-left">Status</th>
-            <th class="p-2 text-left">Tags</th>
             <th class="p-2 text-left">WhatsApp</th>
             <th class="p-2 text-left">Name</th>
             <th class="p-2 text-left">Surname</th>
@@ -124,209 +97,59 @@ const EXEC_LOCKED="https://script.google.com/macros/s/AKfycby981SXO1xO0xGWs-HkD2
 
 const qs=new URLSearchParams(location.search);
 const $=id=>document.getElementById(id);
-const E={ refresh:$("refresh"), gridStatus:$("gridStatus"), gridTags:$("gridTags"), q:$("q"), clear:$("clear"), f:$("f"), ftag:$("ftag"),
-           err:$("err"), help:$("help"), rows:$("rows"), total:$("total"), filtered:$("filtered"), prev:$("prev"),
-           next:$("next"), page:$("page"), apiBadge:$("apiBadge"), useApp:$("useApp") };
+const E={ refresh:$("refresh"), q:$("q"), clear:$("clear"), f:$("f"), err:$("err"), help:$("help"), rows:$("rows"), total:$("total"), filtered:$("filtered"), prev:$("prev"), next:$("next"), page:$("page"), apiBadge:$("apiBadge") };
 
-let all=[], view=[], page=1, counts={}, tagCounts={}, activeStatus="", activeTag="", LAST_SEND_TS=0;
+let all=[], view=[], page=1;
 
 function getExec(){ return qs.get('api') || EXEC_LOCKED; }
 function getGid(){ return qs.get('gid') || ""; }
-function setBadge(){ const ex=getExec(); E.apiBadge.textContent = ex.replace(/^https?:\/\//,''); E.apiBadge.classList.remove('hidden'); }
-function apiUrl(action, params={}){
-  const u=new URL(getExec()); if(action) u.searchParams.set("action", action);
-  const gid=getGid(); if(gid) u.searchParams.set("gid", gid);
-  for(const [k,v] of Object.entries(params||{})) u.searchParams.set(k,v);
-  u.searchParams.set("t", Date.now()); return u.toString();
-}
-async function jget(action, params={}){ const res=await fetch(apiUrl(action, params), {mode:'cors'}); if(!res.ok) throw new Error(res.status); return res.json(); }
-async function jpost(action, payload={}){ const res=await fetch(apiUrl(), {method:'POST', body:JSON.stringify({action,payload}), mode:'cors'}); if(!res.ok) throw new Error(res.status); return res.json(); }
+function apiUrl(action, params={}){ const u=new URL(getExec()); if(action) u.searchParams.set("action", action); const gid=getGid(); if(gid) u.searchParams.set("gid", gid); for(const [k,v] of Object.entries(params||{})) u.searchParams.set(k,v); u.searchParams.set("t", Date.now()); return u.toString(); }
+async function jget(action, params={}){ const r=await fetch(apiUrl(action, params), {mode:'cors'}); if(!r.ok) throw new Error(r.status); return r.json(); }
+async function jpost(action, payload={}){ const r=await fetch(apiUrl(), {method:'POST', body:JSON.stringify({action,payload}), mode:'cors'}); if(!r.ok) throw new Error(r.status); return r.json(); }
 
 function opt(v,s){return `<option value="${v}"${s?' selected':''}>${v}</option>`}
-function chip(label,count,active){return `<div class="tile ${active?'active':''}" data-k="${label}"><span class="label">${label||'All'}</span><span class="count">${count||0}</span></div>`}
-
-function renderStatusGrid(){
-  const total=Object.values(counts).reduce((a,b)=>a+b,0);
-  const tiles=[{k:"", l:"All", c:total}];
-  STATUS_OPTIONS.forEach(s=>tiles.push({k:s,l:s,c:(counts[s]||0)}));
-  E.gridStatus.innerHTML=tiles.map(t=>`<div class="tile ${t.k===activeStatus?'active':''}" data-k="${t.k}"><span class="label">${t.l}</span><span class="count">${t.c}</span></div>`).join("");
-  [...E.gridStatus.querySelectorAll(".tile")].forEach(tile=>{ tile.onclick=()=>{ activeStatus = tile.dataset.k || ""; E.f.value = activeStatus; load(); }; });
-}
-function renderTagGrid(){
-  const totalTags = Object.values(tagCounts).reduce((a,b)=>a+b,0);
-  const keys = ["", ...Object.keys(tagCounts).sort((a,b)=>(a||"").localeCompare(b||""))];
-  E.gridTags.innerHTML=keys.map(k=>chip(k, k?tagCounts[k]:totalTags, (k||"")===(activeTag||""))).join("");
-  [...E.gridTags.querySelectorAll(".tile")].forEach(tile=>{ tile.onclick=()=>{ activeTag = tile.dataset.k || ""; E.ftag.value = activeTag; apply(false); draw(); }; });
-}
-async function refreshStatsInBackground(){ try{ const s=await jget("stats"); counts=s.byStatus||counts; tagCounts=s.byTag||tagCounts; E.total.textContent=s.total||E.total.textContent; renderStatusGrid(); renderTagGrid(); }catch(_){ } }
-async function load(){
-  E.err.textContent=""; E.help.textContent="";
-  try{
-    const status=(E.f.value||"").trim();
-    const js=await jget("recipients", status?{status}:{ });
-    const oldPage = page;
-    all=(js.recipients||[]).map(r=>({ ...r, tags: Array.isArray(r.tags)? r.tags : String(r.tags||'').split(',').map(x=>x.trim()).filter(Boolean) }));
-    apply(false);
-    page = Math.max(1, Math.min(oldPage, Math.ceil(view.length/PAGE)||1));
-    draw();
-    refreshStatsInBackground();
-  }catch(e){
-    E.err.textContent = "Failed to fetch";
-    const statsUrl = apiUrl('stats');
-    E.help.innerHTML = `<div>Open backend: <a class="link" target="_blank" rel="noopener" href="${statsUrl}">${statsUrl}</a></div>`;
-  }
-}
-function apply(resetPage=true){
-  const q=(E.q.value||"").toLowerCase().trim();
-  view=all.filter(r=>{
-    if(q && !(String(r.name||"").toLowerCase().includes(q) || String(r.surname||"").toLowerCase().includes(q) || String(r.agency||"").toLowerCase().includes(q))) return false;
-    if(activeTag && activeTag!=="" && !(r.tags||[]).includes(activeTag)) return false;
-    return true;
-  });
-  E.filtered.textContent=view.length;
-  if (resetPage) page=1;
-}
+function setPage(){ const max=Math.max(1,Math.ceil(view.length/PAGE)); if(page<1)page=1; if(page>max)page=max; $("page").textContent=`Page ${page} of ${max}`; $("prev").disabled=page<=1; $("next").disabled=page>=max; }
 function pageSlice(){ const s=(page-1)*PAGE; return view.slice(s,s+PAGE); }
-function setPage(){
-  const max=Math.max(1,Math.ceil(view.length/PAGE));
-  if(page<1)page=1; if(page>max)page=max;
-  E.page.textContent=`Page ${page} of ${max}`;
-  E.prev.disabled=page<=1; E.next.disabled=page>=max;
-}
 function rowId(r){ return r.rowNumber || (r.rowIndex!=null ? (r.rowIndex+2) : null); }
-function parseWa(waLink){
-  try{
-    const u=new URL(waLink);
-    const phone=u.pathname.replace(/\\//g,'').trim();
-    const text=u.searchParams.get('text')||'';
-    return { phone, text };
-  }catch(_){ return { phone:"", text:"" }; }
-}
-// Named popup + refocus dashboard
-function openWhatsAppWindow(url){
-  const features = 'popup=yes,noopener,noreferrer,width=980,height=820,left=60,top=40,menubar=no,toolbar=no,location=yes,status=no,scrollbars=yes,resizable=yes';
+
+function parseWa(waLink){ try{ const u=new URL(waLink); const phone=u.pathname.replace(/\//g,'').trim(); const text=u.searchParams.get('text')||''; return { phone, text }; }catch(_){ return { phone:"", text:"" }; } }
+
+function openDesktopOrPopup(waLink){ // NEVER same window
+  const p=parseWa(waLink);
+  const appUrl = `whatsapp://send?phone=${encodeURIComponent(p.phone)}&text=${encodeURIComponent(p.text)}`;
+  const features = 'popup=yes,noopener,noreferrer,width=900,height=780,left=80,top=60,menubar=no,toolbar=no,location=no,status=no,scrollbars=yes,resizable=yes';
   let w=null;
   try{ w = window.open('about:blank','kw_whatsapp',features); }catch(_){}
   if (w){
     try{ w.opener=null; }catch(_){}
-    try{ w.location.href=url; }catch(_){ w.location = url; }
-    setTimeout(()=>{ try{ w.blur(); }catch(_){ } try{ window.focus(); }catch(_){ } }, 250);
-    return true;
+    try{ w.location.href=appUrl; }catch(_){ try{ w.location=appUrl; }catch(__){} }
+    setTimeout(()=>{ try{ w.close(); }catch(__){} try{ window.focus(); }catch(__){} }, 500);
+    setTimeout(()=>{ try{ if(!document.hidden) w.location.href = waLink; }catch(__){} }, 1200);
+    return;
   }
-  const a=document.createElement('a');
-  a.href=url; a.target='kw_whatsapp'; a.rel='noopener noreferrer';
+  // Anchor fallback (still not same tab)
+  const a=document.createElement('a'); a.href=appUrl; a.target='kw_whatsapp'; a.rel='noopener noreferrer';
   document.body.appendChild(a); a.click(); a.remove();
-  setTimeout(()=>{ try{ window.focus(); }catch(_){ } }, 250);
-  return false;
-}
-async function changeStatus(r,newStatus,control){
-  const rn=rowId(r); if(!rn) return; control && (control.disabled=true);
-  const oldStatus = r.status || "";
-  r.status = newStatus;
-  if (oldStatus && counts[oldStatus]>0) counts[oldStatus] = (counts[oldStatus]||0) - 1;
-  counts[newStatus] = (counts[newStatus]||0) + 1;
-  renderStatusGrid();
-  const active = (E.f.value||"");
-  if (active && newStatus !== active){
-    const rid = rn; all = all.filter(x => rowId(x)!== rid); view = view.filter(x => rowId(x)!== rid);
-    draw();
-  } else { draw(); }
-  try{ await jpost("updateSingleStatus", {rowNumber: rn, newStatus}); refreshStatsInBackground(); }
-  catch(e){ console.error(e); r.status = oldStatus; counts[newStatus] = Math.max(0,(counts[newStatus]||0)-1); counts[oldStatus] = (counts[oldStatus]||0)+1; renderStatusGrid(); draw(); }
-  finally{ control && (control.disabled=false); }
-}
-async function editTags(r,btn){
-  const rn=rowId(r); if(!rn) return;
-  const existing=(r.tags||[]).join(", ");
-  const v=prompt("Tags (comma separated)", existing);
-  if(v===null) return;
-  const tags=v.split(",").map(s=>s.trim()).filter(Boolean);
-  btn.disabled=true;
-  try{
-    await jpost("updateTags", {rowNumber: rn, tags});
-    r.tags = tags;
-    tagCounts={}; all.forEach(x => (x.rowNumber===rn? (x.tags=tags):null));
-    all.forEach(x => (x.tags||[]).forEach(t=> tagCounts[t]=(tagCounts[t]||0)+1 ));
-    renderTagGrid();
-    apply(false); draw(); refreshStatsInBackground();
-  }catch(e){ console.error(e); }
-  finally{ btn.disabled=false; }
-}
-function draw(){
-  E.rows.innerHTML="";
-  const rows=pageSlice();
-  if(!rows.length){
-    E.rows.innerHTML='<tr><td class="p-3 text-slate-300" colspan="9">No rows.</td></tr>';
-    setPage(); return;
-  }
-  rows.forEach(r=>{
-    const tr=document.createElement("tr"); tr.className="border-b border-slate-800";
-
-    const tdType=document.createElement("td"); tdType.className="p-2";
-    tdType.innerHTML=`<span class="badge">${r.messageType||"Recruit"}</span>`;
-
-    const tdStatus=document.createElement("td"); tdStatus.className="p-2";
-    tdStatus.innerHTML=`<select class="select">${STATUS_OPTIONS.map(s=>`<option value="${s}"${s===(r.status||"")?" selected":""}>${s}</option>`).join("")}</select>`;
-    const sel=tdStatus.querySelector("select"); sel.onchange=()=>changeStatus(r, sel.value, sel);
-
-    const tdTags=document.createElement("td"); tdTags.className="p-2";
-    const list=document.createElement("div"); list.className="flex flex-wrap";
-    (r.tags||[]).forEach(t=>{ const span=document.createElement("span"); span.className="tag"; span.textContent=t; list.appendChild(span); });
-    const edit=document.createElement("button"); edit.className="badge ml-1"; edit.textContent="Edit"; edit.onclick=()=>editTags(r, edit);
-    tdTags.append(list, edit);
-
-    const tdWA=document.createElement("td"); tdWA.className="p-2";
-    const btn=document.createElement("button"); btn.className="btn"; btn.textContent="Send";
-    const link=r.waLink||""; 
-    const ok=/^https:\/\/(wa\.me|web\.whatsapp\.com|api\.whatsapp\.com)\//.test(link);
-    if(!ok) btn.disabled=true;
-    btn.onclick=()=>{
-      if(Date.now()-LAST_SEND_TS<350) return; LAST_SEND_TS=Date.now();
-      if (E.useApp.checked) {
-        const p=parseWa(link);
-        const appUrl = `whatsapp://send?phone=${encodeURIComponent(p.phone)}&text=${encodeURIComponent(p.text)}`;
-        const opened = openWhatsAppWindow(appUrl);
-        if(!opened) openWhatsAppWindow(link);
-      } else {
-        openWhatsAppWindow(link);
-      }
-    };
-
-    const tdName=document.createElement("td"); tdName.className="p-2"; tdName.textContent=r.name||"";
-    const tdSur=document.createElement("td"); tdSur.className="p-2"; tdSur.textContent=r.surname||"";
-    const tdNum=document.createElement("td"); tdNum.className="p-2"; tdNum.textContent=r.cell||"";
-    const tdAg=document.createElement("td"); tdAg.className="p-2"; tdAg.textContent=r.agency||"";
-
-    const tdNote=document.createElement("td"); tdNote.className="p-2";
-    const nb=document.createElement("button"); nb.className="badge"; nb.textContent="Edit";
-    nb.onclick=async()=>{ const v=prompt("Edit note for "+(r.name||""), r.notes||""); if(v===null) return; nb.disabled=true; try{ await jpost("updateNote", {rowNumber: rowId(r), note:v}); r.notes=v; draw(); refreshStatsInBackground(); } finally{ nb.disabled=false; } };
-
-    tdWA.appendChild(btn);
-    tr.append(tdType, tdStatus, tdTags, tdWA, tdName, tdSur, tdNum, tdAg, tdNote);
-    E.rows.appendChild(tr);
-  });
-  setPage();
+  setTimeout(()=>{ if(!document.hidden) window.open(waLink,'kw_whatsapp',features); }, 1200);
 }
 
-document.addEventListener("DOMContentLoaded", async ()=>{
-  const ex = "https://script.google.com/macros/s/AKfycby981SXO1xO0xGWs-HkD2wGePSwRg1AbRFrbAQul8c2dirHhpssESwOTbb0Go2rHcjE/exec";
-  const badge = document.getElementById("apiBadge");
-  badge.textContent = ex.replace(/^https?:\/\//,'');
-  badge.classList.remove('hidden');
+async function changeStatus(r,newStatus,sel){ const rn=rowId(r); if(!rn) return; sel && (sel.disabled=true); try{ await jpost("updateSingleStatus", {rowNumber: rn, newStatus}); r.status=newStatus; }finally{ sel && (sel.disabled=false); } }
 
-  E.useApp.checked = !!(localStorage.getItem('useApp')==='true');
-  E.useApp.onchange = ()=> localStorage.setItem('useApp', E.useApp.checked?'true':'false');
+function draw(){ E.rows.innerHTML=""; const rows=pageSlice(); if(!rows.length){E.rows.innerHTML='<tr><td class="p-3 text-slate-300" colspan="8">No rows.</td></tr>'; setPage(); return; }
+  rows.forEach(r=>{ const tr=document.createElement("tr"); tr.className="border-b border-slate-800";
+    const t1=document.createElement("td"); t1.className="p-2"; t1.innerHTML=`<span class="badge">${r.messageType||'Recruit'}</span>`;
+    const t2=document.createElement("td"); t2.className="p-2"; t2.innerHTML=`<select class="select">${STATUS_OPTIONS.map(s=>`<option value="${s}"${s===(r.status||'')?' selected':''}>${s}</option>`).join('')}</select>`; const sel=t2.querySelector('select'); sel.onchange=()=>changeStatus(r, sel.value, sel);
+    const t3=document.createElement("td"); t3.className="p-2"; const btn=document.createElement("button"); btn.className="btn"; btn.textContent="Send"; const ok=/^https:\/\/(wa\.me|web\.whatsapp\.com|api\.whatsapp\.com)\//.test(r.waLink||''); if(!ok) btn.disabled=true; btn.onclick=(e)=>{ e.preventDefault(); e.stopPropagation(); openDesktopOrPopup(r.waLink); }; t3.appendChild(btn);
+    const t4=document.createElement("td"); t4.className="p-2"; t4.textContent=r.name||'';
+    const t5=document.createElement("td"); t5.className="p-2"; t5.textContent=r.surname||'';
+    const t6=document.createElement("td"); t6.className="p-2"; t6.textContent=r.cell||'';
+    const t7=document.createElement("td"); t7.className="p-2"; t7.textContent=r.agency||'';
+    const t8=document.createElement("td"); t8.className="p-2"; const nb=document.createElement('button'); nb.className='badge'; nb.textContent='Edit'; nb.onclick=async()=>{ const v=prompt('Edit note for '+(r.name||''), r.notes||''); if(v===null) return; nb.disabled=true; try{ await jpost('updateNote', {rowNumber: rowId(r), note:v}); r.notes=v; draw(); }finally{ nb.disabled=false; } }; t8.appendChild(nb);
+    tr.append(t1,t2,t3,t4,t5,t6,t7,t8); E.rows.appendChild(tr); }); setPage(); }
 
-  document.getElementById("f").innerHTML='<option value="">(All)</option>'+STATUS_OPTIONS.map(s=>opt(s,false)).join("");
-  document.getElementById("ftag").innerHTML='<option value="">(All)</option>';
-  E.q.oninput=()=>apply(); E.clear.onclick=()=>{E.q.value=""; apply();}; 
-  E.f.onchange=()=>{ activeStatus=E.f.value||""; load(); };
-  E.ftag.onchange=()=>{ activeTag=E.ftag.value||""; apply(false); draw(); };
-  E.prev.onclick=()=>{page--; draw();}; E.next.onclick=()=>{page++; draw();};
-  E.refresh.onclick=()=>load();
+function apply(reset=true){ const q=(E.q.value||'').toLowerCase().trim(); view=all.filter(r=>{ if(q && !(String(r.name||'').toLowerCase().includes(q)||String(r.surname||'').toLowerCase().includes(q)||String(r.agency||'').toLowerCase().includes(q))) return false; const f=E.f.value||''; if(f && f!==(r.status||'')) return false; return true; }); E.filtered.textContent=view.length; if(reset) page=1; }
+async function load(){ E.err.textContent=''; E.help.textContent=''; try{ const status=(E.f.value||'').trim(); const js=await jget('recipients', status?{'status':status}:{}); all=js.recipients||[]; apply(true); draw(); const s=await jget('stats'); E.total.textContent=s.total||0; }catch(e){ E.err.textContent='Failed to fetch'; const url=apiUrl('stats'); E.help.innerHTML=`Open backend: <a class="link" target="_blank" rel="noopener" href="${url}">${url}</a>`; } }
 
-  try{ await load(); }catch(e){ E.err.textContent = (e.message||e); }
-});
+document.addEventListener('DOMContentLoaded', async ()=>{ $('f').innerHTML='<option value="">(All)</option>'+STATUS_OPTIONS.map(s=>opt(s,false)).join(''); E.q.oninput=()=>apply(); E.clear.onclick=()=>{E.q.value=''; apply();}; E.f.onchange=()=>load(); E.prev.onclick=()=>{page--; draw();}; E.next.onclick=()=>{page++; draw();}; E.refresh.onclick=()=>load(); document.getElementById('apiBadge').textContent=(new URL(getExec())).host; document.getElementById('apiBadge').classList.remove('hidden'); await load(); });
 </script>
-</body>
-</html>
+</body></html>
