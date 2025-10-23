@@ -7,10 +7,7 @@
 <link rel="icon" href="./assets/icon.png">
 <script src="https://cdn.tailwindcss.com"></script>
 <style>
-:root{
-  --bg:#0b0c10;--panel:#0f172a;--panel2:#0b1220;--border:#1f2937;--text:#f8fafc;
-  --muted:#e2e8f0;--chip:#334155;--chipText:#f1f5f9;--accent:#e11d48;
-}
+:root{ --bg:#0b0c10;--panel:#0f172a;--panel2:#0b1220;--border:#1f2937;--text:#f8fafc;--muted:#e2e8f0;--chip:#334155;--chipText:#f1f5f9;--accent:#e11d48;}
 html,body{background:var(--bg);color:var(--text);font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
 .card{background:var(--panel);border:1px solid var(--border)}
 .badge{background:var(--chip);color:var(--chipText);border-radius:9999px;padding:6px 10px;font-size:.75rem}
@@ -18,21 +15,13 @@ html,body{background:var(--bg);color:var(--text);font-family:Inter,system-ui,Seg
 .btn:disabled{opacity:.5;cursor:not-allowed}
 .btn-ghost{background:#1f2937;color:#e2e8f0;border:1px solid #334155;border-radius:.6rem;padding:.5rem .8rem}
 .input,.select{background:var(--panel2);border:1px solid #64748b;border-radius:.6rem;padding:.6rem .7rem;color:#fff}
-.input::placeholder{color:#cbd5e1}
 .table-head{background:rgba(255,255,255,.04);color:var(--muted)}
-.tile{display:flex;align-items:center;justify-content:space-between;gap:.75rem;
-      background:#1e293b;border:1px solid #334155;border-radius:.75rem;
-      padding:.6rem .8rem;cursor:pointer;user-select:none}
+.tile{display:flex;align-items:center;justify-content:space-between;gap:.75rem;background:#1e293b;border:1px solid #334155;border-radius:.75rem;padding:.6rem .8rem;cursor:pointer;user-select:none}
 .tile:hover{border-color:#94a3b8}
 .tile.active{background:#e11d48;border-color:#e11d48}
-.tile .label{font-weight:600}
-.tile .count{background:rgba(255,255,255,.12);padding:.15rem .6rem;border-radius:9999px}
+.tile .label{font-weight:600}.tile .count{background:rgba(255,255,255,.12);padding:.15rem .6rem;border-radius:9999px}
 .sticky-head{position:sticky;top:0;background:var(--panel);z-index:10}
 a.link{color:#93c5fd;text-decoration:underline} a.link:hover{color:#bfdbfe}
-.modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.6)}
-.modal.open{display:flex}
-.modal-card{width:96%;max-width:720px}
-.code{font-family:ui-monospace, SFMono-Regular, Menlo, monospace;background:#0b1220;border:1px solid #374151;border-radius:.5rem;padding:.35rem .5rem}
 </style>
 </head>
 <body class="min-h-screen">
@@ -42,28 +31,23 @@ a.link{color:#93c5fd;text-decoration:underline} a.link:hover{color:#bfdbfe}
       <img src="./assets/logo.svg" alt="logo" class="h-7"/>
       <div>
         <h1 class="text-xl font-semibold">Recruit 101</h1>
-        <div class="text-xs text-slate-300" id="env">v20</div>
+        <div class="text-xs text-slate-300" id="env">v20.1</div>
       </div>
     </div>
     <div class="flex items-center gap-2">
-      <button id="btnSettings" class="btn-ghost">Settings</button>
       <label class="text-sm">After-send status</label>
       <select id="after" class="select"></select>
       <button id="refresh" class="btn">Refresh</button>
     </div>
   </header>
 
-  <!-- Summary + Status grid -->
   <section class="card rounded-xl p-4 space-y-3">
     <div class="flex items-center gap-3 flex-wrap">
       <span class="badge">Total <span id="total">0</span></span>
       <span class="badge">Filtered <span id="filtered">0</span></span>
       <span id="apiBadge" class="badge hidden"></span>
     </div>
-
-    <!-- Multi-row grid -->
     <div id="grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-2"></div>
-
     <div class="grid md:grid-cols-3 gap-2 items-end">
       <div class="md:col-span-2">
         <label class="text-sm">Search (Name or Agency)</label>
@@ -99,7 +83,6 @@ a.link{color:#93c5fd;text-decoration:underline} a.link:hover{color:#bfdbfe}
         <tbody id="rows"></tbody>
       </table>
     </div>
-
     <div class="flex items-center justify-between mt-3">
       <div class="text-xs text-slate-300">Showing 15 per page</div>
       <div class="flex items-center gap-2">
@@ -111,50 +94,21 @@ a.link{color:#93c5fd;text-decoration:underline} a.link:hover{color:#bfdbfe}
   </section>
 </div>
 
-<!-- Settings Modal -->
-<div id="settingsModal" class="modal">
-  <div class="modal-card card rounded-xl p-4 space-y-3">
-    <div class="flex items-center justify-between">
-      <h2 class="text-lg font-semibold">Settings</h2>
-      <button id="closeSettings" class="badge">Close</button>
-    </div>
-    <div class="grid md:grid-cols-2 gap-3">
-      <div>
-        <label class="text-sm">Apps Script Web App URL</label>
-        <input id="setExec" class="input w-full" placeholder="https://script.google.com/macros/s/…/exec" />
-        <p class="text-xs text-slate-300 mt-1">Saved locally. You can also pass <span class="code">?api=…</span> in the page URL.</p>
-      </div>
-      <div>
-        <label class="text-sm">Sheet GID (optional)</label>
-        <input id="setGid" class="input w-full" placeholder="123456789" />
-      </div>
-    </div>
-    <div class="flex items-center gap-2">
-      <button id="saveSettings" class="btn">Save</button>
-      <a id="openStats" class="link text-sm" href="#" target="_blank" rel="noopener">Open backend /stats</a>
-    </div>
-    <div class="text-xs text-slate-300">If fetch fails, make sure Web App is <b>Execute as Me</b> and <b>Anyone</b>, and add CORS header <span class="code">Access-Control-Allow-Origin: *</span>.</div>
-  </div>
-</div>
-
 <script>
-// --- Constants & helpers
 const STATUS_OPTIONS=["To Contact","Whatsapp","Reply","Keen to meet","Cultivate","Invite to events","Not interested","No Whatsapp","Unsubscribe","Referred","Event Invite Sent","Event Invite Accepted"];
 const DEFAULT_AFTER="Event Invite Sent"; const PAGE=15;
-const EXEC_LOCKED="https://script.google.com/macros/s/AKfycbw9OkQIE3-fuVQjnBgeq_oHn3CkTWuA-RHZHujzx9_HI69kxFS_lMxuXptKwCO5eBSgQA/exec"; // pre-wired, can be overridden in Settings or ?api=
+const EXEC_LOCKED="https://script.google.com/macros/s/AKfycbw9OkQIE3-fuVQjnBgeq_oHn3CkTWuA-RHZHujzx9_HI69kxFS_lMxuXptKwCO5eBSgQA/exec";
 
 const qs=new URLSearchParams(location.search);
 const $=id=>document.getElementById(id);
-const E={ env:$("env"), after:$("after"), refresh:$("refresh"), grid:$("grid"), q:$("q"), clear:$("clear"), f:$("f"),
+const E={ after:$("after"), refresh:$("refresh"), grid:$("grid"), q:$("q"), clear:$("clear"), f:$("f"),
            err:$("err"), help:$("help"), rows:$("rows"), total:$("total"), filtered:$("filtered"), prev:$("prev"),
-           next:$("next"), page:$("page"), apiBadge:$("apiBadge"),
-           modal:$("settingsModal"), btnSettings:$("btnSettings"), closeSettings:$("closeSettings"),
-           setExec:$("setExec"), setGid:$("setGid"), saveSettings:$("saveSettings"), openStats:$("openStats") };
+           next:$("next"), page:$("page"), apiBadge:$("apiBadge") };
 
 let all=[], view=[], page=1, counts={}, activeStatus="", LAST_SEND_TS=0;
 
-function getExec(){ return qs.get('api') || localStorage.getItem('recruit101_exec') || EXEC_LOCKED; }
-function getGid(){ return qs.get('gid') || localStorage.getItem('recruit101_gid') || ""; }
+function getExec(){ return qs.get('api') || EXEC_LOCKED; }
+function getGid(){ return qs.get('gid') || ""; }
 function setBadge(){ const ex=getExec(); E.apiBadge.textContent = ex.replace(/^https?:\/\//,''); E.apiBadge.classList.remove('hidden'); }
 function apiUrl(action, params={}){
   const u=new URL(getExec()); if(action) u.searchParams.set("action", action);
@@ -169,15 +123,15 @@ async function jget(action, params={}){
   if(!res.ok) throw new Error(res.status+" "+res.statusText);
   return res.json();
 }
+// IMPORTANT: No Content-Type header -> browser sends text/plain (simple request) -> no preflight
 async function jpost(action, payload={}){
   const url=apiUrl();
-  const res=await fetch(url, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({action, payload}) });
+  const res=await fetch(url, { method:'POST', body: JSON.stringify({action, payload}), mode:'cors' });
   if(!res.ok) throw new Error(res.status+" "+res.statusText);
   return res.json();
 }
 function opt(v,s){return `<option value="${v}"${s?' selected':''}>${v}</option>`}
 
-// --- Status grid
 function renderGrid(){
   const total=Object.values(counts).reduce((a,b)=>a+b,0);
   const tiles=[{k:"", l:"All", c:total}];
@@ -191,14 +145,12 @@ function renderGrid(){
   });
 }
 
-// --- Stats
 async function stats(){
   try{ const s=await jget("stats"); counts=s.byStatus||{}; E.total.textContent=s.total||0; }
   catch(e){ counts={}; all.forEach(r=>counts[r.status]=(counts[r.status]||0)+1); E.total.textContent=all.length; }
   renderGrid();
 }
 
-// --- Load & apply
 async function load(){
   E.err.textContent = ""; E.help.textContent="";
   try{
@@ -209,15 +161,10 @@ async function load(){
   }catch(e){
     E.err.textContent = "Failed to fetch";
     const statsUrl = apiUrl('stats');
-    E.help.innerHTML = `
-      <div class="mt-1">Open backend in a tab: <a class="link" target="_blank" rel="noopener" href="${statsUrl}">${statsUrl}</a></div>
-      <ul class="list-disc ml-5 mt-1">
-        <li>Deploy as <b>Execute as Me</b>, access <b>Anyone</b>.</li>
-        <li>Add CORS: <span class="code">Access-Control-Allow-Origin: *</span> on all JSON.</li>
-        <li>Serve this page over http(s), e.g. <span class="code">python3 -m http.server 8080</span>.</li>
-      </ul>`;
+    E.help.innerHTML = `<div>Open backend: <a class="link" target="_blank" rel="noopener" href="${statsUrl}">${statsUrl}</a></div>`;
   }
 }
+
 function apply(){
   const q=(E.q.value||"").toLowerCase().trim();
   view=all.filter(r=>!q||String(r.name||"").toLowerCase().includes(q)||String(r.surname||"").toLowerCase().includes(q)||String(r.agency||"").toLowerCase().includes(q));
@@ -233,17 +180,13 @@ function setPage(){
 }
 function rowId(r){ return r.rowNumber || (r.rowIndex!=null ? (r.rowIndex+2) : null); }
 
-// --- Updates
 async function changeStatus(r,newStatus,control){
   const rn=rowId(r); if(!rn) return; control && (control.disabled=true);
-  try{
-    await jpost("updateSingleStatus", {rowNumber: rn, newStatus});
-    await load();
-  }catch(e){ console.error(e); }
+  try{ await jpost("updateSingleStatus", {rowNumber: rn, newStatus}); await load(); }
+  catch(e){ console.error(e); }
   finally{ control && (control.disabled=false); }
 }
 
-// --- Render table
 function draw(){
   E.rows.innerHTML="";
   const rows=pageSlice();
@@ -264,9 +207,7 @@ function draw(){
 
     const tdWA=document.createElement("td"); tdWA.className="p-2";
     const btn=document.createElement("button"); btn.className="btn"; btn.textContent="Send";
-    const link=r.waLink||"";
-    // Accept wa.me, web.whatsapp.com, api.whatsapp.com
-    const ok=/^https:\/\/(wa\.me|web\.whatsapp\.com|api\.whatsapp\.com)\//.test(link);
+    const link=r.waLink||""; const ok=/^https:\/\/(wa\.me|web\.whatsapp\.com|api\.whatsapp\.com)\//.test(link);
     if(!ok) btn.disabled=true;
     btn.onclick=async()=>{
       if(Date.now()-LAST_SEND_TS<900) return; LAST_SEND_TS=Date.now();
@@ -278,14 +219,10 @@ function draw(){
       if(!phone){ const m=link.match(/wa\.me\/(\d+)/); if(m) phone=m[1]; }
       if(!phone) return;
       const txt=encodeURIComponent(text||"");
-      try{
-        // Desktop app first
-        window.location.href=`whatsapp://send?phone=${phone}&text=${txt}`;
-        setTimeout(()=>{ if(!document.hidden) window.open(`https://web.whatsapp.com/send?phone=${phone}&text=${txt}`,"_blank","noopener"); }, 900);
-      }catch(_){
-        try{ window.open(`https://web.whatsapp.com/send?phone=${phone}&text=${txt}`,"_blank","noopener"); }catch(__){}
-      }
-      await changeStatus(r, (E.after.value||DEFAULT_AFTER), btn);
+      try{ window.location.href=`whatsapp://send?phone=${phone}&text=${txt}`;
+           setTimeout(()=>{ if(!document.hidden) window.open(`https://web.whatsapp.com/send?phone=${phone}&text=${txt}`,"_blank","noopener"); }, 900);
+      }catch(_){ try{ window.open(`https://web.whatsapp.com/send?phone=${phone}&text=${txt}`,"_blank","noopener"); }catch(__){} }
+      await changeStatus(r, (document.getElementById("after").value||DEFAULT_AFTER), btn);
     };
     tdWA.appendChild(btn);
 
@@ -305,26 +242,12 @@ function draw(){
   setPage();
 }
 
-// --- Settings helpers
-function initSettings(){
-  const ex=getExec(), gid=getGid();
-  E.setExec.value = ex; E.setGid.value = gid;
-  E.openStats.href = apiUrl('stats');
-  setBadge();
-}
-
-// --- Boot
 document.addEventListener("DOMContentLoaded", async ()=>{
-  $("after").innerHTML=STATUS_OPTIONS.map(s=>opt(s,s===DEFAULT_AFTER)).join("");
-  $("f").innerHTML='<option value="">(All)</option>'+STATUS_OPTIONS.map(s=>opt(s,false)).join("");
+  document.getElementById("after").innerHTML=STATUS_OPTIONS.map(s=>opt(s,s===DEFAULT_AFTER)).join("");
+  document.getElementById("f").innerHTML='<option value="">(All)</option>'+STATUS_OPTIONS.map(s=>opt(s,false)).join("");
   E.q.oninput=()=>apply(); E.clear.onclick=()=>{E.q.value=""; apply();}; E.f.onchange=()=>{ activeStatus=E.f.value||""; load(); };
   E.prev.onclick=()=>{page--; draw();}; E.next.onclick=()=>{page++; draw();}; E.refresh.onclick=()=>load();
-
-  // settings
-  E.btnSettings.onclick=()=>{ initSettings(); E.modal.classList.add('open'); };
-  E.closeSettings.onclick=()=>E.modal.classList.remove('open');
-  E.saveSettings.onclick=()=>{ localStorage.setItem('recruit101_exec', E.setExec.value.trim()); localStorage.setItem('recruit101_gid', E.setGid.value.trim()); E.modal.classList.remove('open'); setBadge(); load(); };
-
+  setBadge();
   try{ await load(); }catch(e){ E.err.textContent = (e.message||e); }
 });
 </script>
