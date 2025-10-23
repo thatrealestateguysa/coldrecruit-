@@ -3,80 +3,106 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Recruit 101 — Frontend v15</title>
+  <title>Recruit 101</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <meta name="theme-color" content="#0b0b0b">
+  <meta name="theme-color" content="#0a0a0a">
   <link rel="icon" href="./assets/icon.png">
   <style>
-    html,body { background:#0b0b0b; color:#e5e7eb; }
-    .card { background:#0f172a; border:1px solid #1f2937; }
-    .muted { color:#9ca3af; }
-    .btn { background:#e11d48; color:white; }
-    .btn-lite { background:#334155; color:#e5e7eb; }
-    .tab { 
-      display:flex; align-items:center; gap:.5rem;
-      background:#111827; border:1px solid #374151; 
-      padding:.45rem .75rem; border-radius:9999px; 
+    :root {
+      --bg:#0a0a0a;
+      --panel:#0f172a;
+      --panel-strong:#0b1220;
+      --border:#1f2937;
+      --muted:#cbd5e1;
+      --muted-weak:#94a3b8;
+      --text:#f8fafc;
+      --accent:#e11d48;
+      --accent-2:#22c55e;
+      --chip:#334155;
+      --chip-text:#f1f5f9;
+      --input-bg:#0b1220;
+      --input-text:#f8fafc;
+      --input-border:#475569;
+      --tab:#334155;
+      --tab-text:#f1f5f9;
+      --tab-hover:#475569;
+      --tab-active:#e11d48;
+      --tab-active-text:#ffffff;
+    }
+    html,body { background:var(--bg); color:var(--text); }
+    .card { background:var(--panel); border:1px solid var(--border); }
+    .muted { color:var(--muted); }
+    .btn { background:var(--accent); color:#fff; }
+    .btn-lite { background:var(--chip); color:var(--chip-text); }
+    .btn-lite:hover { background:var(--tab-hover); }
+    .tab {
+      display:flex; align-items:center; gap:.6rem;
+      background:var(--tab); color:var(--tab-text);
+      border:1px solid var(--tab-hover);
+      padding:.5rem .85rem; border-radius:9999px;
       cursor:pointer; white-space:nowrap;
       transition:all .12s ease-in-out;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.03);
     }
-    .tab:hover { border-color:#64748b; }
-    .tab.active { background:#e11d48; border-color:#e11d48; color:#fff; }
-    .badge { background:#374151; color:#e5e7eb; padding:2px 8px; border-radius:9999px; font-size:12px; }
+    .tab:hover { border-color:var(--muted); }
+    .tab.active { background:var(--tab-active); border-color:var(--tab-active); color:var(--tab-active-text); }
+    .badge { background:var(--chip); color:var(--chip-text); padding:2px 10px; border-radius:9999px; font-size:12px; }
     table th, table td { white-space:nowrap; }
-    .pill { padding:2px 8px; border-radius:9999px; border:1px solid #374151; }
+    .pill { padding:4px 10px; border-radius:9999px; border:1px solid var(--tab-hover); background:var(--panel-strong); }
+    input[type="text"], select {
+      background:var(--input-bg); color:var(--input-text);
+      border:1px solid var(--input-border); outline:none;
+    }
+    input::placeholder { color:var(--muted); opacity:.9; }
+    .select, .input { border-radius:.5rem; padding:.5rem .6rem; }
+    .table-head { color:var(--muted); background:rgba(255,255,255,0.03); }
+    .link { color:#93c5fd; text-decoration:underline; }
+    .link:hover { color:#bfdbfe; }
   </style>
 </head>
 <body class="min-h-screen">
   <div class="max-w-7xl mx-auto p-4 space-y-4">
     <header class="flex items-center justify-between">
-      <div class="flex items-center gap-3">
-        <img src="./assets/logo.png" class="h-10 w-auto rounded-md" onerror="this.style.display='none'"/>
-        <div>
-          <h1 class="text-xl font-semibold">Recruit 101</h1>
-          <div class="text-xs muted" id="envInfo">v15</div>
-        </div>
+      <div>
+        <h1 class="text-xl font-semibold">Recruit 101</h1>
+        <div class="text-xs muted" id="envInfo">v17</div>
       </div>
       <div class="flex items-center gap-2">
         <label class="text-sm">After-send status</label>
-        <select id="afterStatus" class="rounded p-2"></select>
-        <button id="btnRefresh" class="btn px-3 py-2 rounded">Refresh</button>
+        <select id="afterStatus" class="select"></select>
+        <button id="btnRefresh" class="btn px-3 py-2 rounded-lg">Refresh</button>
       </div>
     </header>
 
-    <!-- Status Tabs / Totals -->
-    <section class="card rounded-xl p-3 space-y-3">
+    <section class="card rounded-xl p-4 space-y-3">
       <div class="flex items-center gap-3 flex-wrap">
         <div class="pill text-xs">Total: <span id="totalCount">0</span></div>
         <div class="pill text-xs">Filtered: <span id="resultCount">0</span></div>
         <div id="statusMsg" class="text-xs muted"></div>
       </div>
 
-      <!-- Tabs container -->
       <div id="tabsWrap" class="flex gap-2 overflow-x-auto pb-1"></div>
 
-      <!-- Search & explicit filter -->
       <div class="grid md:grid-cols-3 gap-2 items-end">
         <div class="md:col-span-2">
           <label class="text-sm block mb-1">Search (Name or Agency)</label>
           <div class="flex gap-2">
-            <input id="q" class="rounded p-2 w-full" placeholder="Type to filter… (e.g. Ndlovu or 'Explore')" />
-            <button id="btnClearQ" class="btn-lite px-2 py-2 rounded">Clear</button>
+            <input id="q" class="input w-full" placeholder="Type to filter… (e.g. Ndlovu or 'Explore')" />
+            <button id="btnClearQ" class="btn-lite px-3 py-2 rounded-lg">Clear</button>
           </div>
         </div>
         <div>
           <label class="text-sm block mb-1">Status filter</label>
-          <select id="fStatus" class="rounded p-2 w-full"></select>
+          <select id="fStatus" class="select w-full"></select>
         </div>
       </div>
       <div id="err" class="text-xs text-red-400"></div>
     </section>
 
-    <!-- Table -->
     <section class="card rounded-xl p-3">
       <div class="overflow-auto">
         <table class="w-full text-sm">
-          <thead class="text-xs uppercase muted">
+          <thead class="text-xs uppercase table-head">
             <tr class="border-b border-neutral-800">
               <th class="p-2 text-left">Message Type</th>
               <th class="p-2 text-left">Status</th>
@@ -92,31 +118,35 @@
         </table>
       </div>
 
-      <!-- Pagination -->
       <div class="flex items-center justify-between mt-3">
         <div class="text-xs muted">Showing 15 per page</div>
         <div class="flex items-center gap-2">
-          <button id="prevPage" class="btn-lite px-3 py-2 rounded">Prev</button>
+          <button id="prevPage" class="btn-lite px-3 py-2 rounded-lg">Prev</button>
           <span id="pageInfo" class="text-sm"></span>
-          <button id="nextPage" class="btn-lite px-3 py-2 rounded">Next</button>
+          <button id="nextPage" class="btn-lite px-3 py-2 rounded-lg">Next</button>
         </div>
       </div>
     </section>
+
+    <footer class="text-xs muted text-center py-4">
+      If your sheet layout changes, refresh this page. Need help? Click <a class="link" href="https://script.google.com/macros/s/AKfycbyvfBTI8TtRHb_6lnAvI5GEo90fJSQJ0HKRYKACgKoBrY4txHmpvlThSiBiicXjnJJq6g/exec?action=stats" target="_blank" rel="noopener">here</a> to check backend stats.
+    </footer>
   </div>
 
 <script>
-/* ===== Locked to your deployment, but override allowed via ?api & ?gid ===== */
-const LOCKED_EXEC = "https://script.google.com/macros/s/AKfycby-u7eYahEt53jRyRZqWCoaTiaL1_CS7v4Ndo7Iw-1lLU0o0LvDU7M6cY8yutfsUhT23A/exec";
+const LOCKED_EXEC = "https://script.google.com/macros/s/AKfycbyvfBTI8TtRHb_6lnAvI5GEo90fJSQJ0HKRYKACgKoBrY4txHmpvlThSiBiicXjnJJq6g/exec";
 const qs = new URLSearchParams(location.search);
 const EXEC = qs.get('api') || LOCKED_EXEC;
 const GID  = qs.get('gid') || "";
 
-/* ===== Constants ===== */
-const STATUS_OPTIONS = ["To Contact", "Whatsapp", "Reply", "Keen to meet", "Cultivate", "Invite to events", "Not interested", "No Whatsapp", "Unsubscribe", "Referred", "Event Invite Sent", "Event Invite Accepted"];
+const STATUS_OPTIONS = [
+  "To Contact","Whatsapp","Reply","Keen to meet","Cultivate",
+  "Invite to events","Not interested","No Whatsapp",
+  "Unsubscribe","Referred","Event Invite Sent","Event Invite Accepted"
+];
 const DEFAULT_AFTER_SEND = "Event Invite Sent";
 const PAGE_SIZE = 15;
 
-/* ===== DOM ===== */
 const el=id=>document.getElementById(id);
 const E={ 
   envInfo: el('envInfo'), err: el('err'),
@@ -128,17 +158,10 @@ const E={
   prevPage: el('prevPage'), nextPage: el('nextPage')
 };
 
-/* ===== State ===== */
 let currentPage=1, rowsAll=[], rowsView=[], counts={}, LAST_SEND_TS=0;
 
-/* ===== Utils ===== */
-function showEnv(){ E.envInfo.textContent='v15'+(GID? ' · gid '+GID : ''); }
+function showEnv(){ E.envInfo.textContent='v17'+(GID? ' · gid '+GID : ''); }
 function opt(v,sel){return `<option value="${v.replaceAll('"','&quot;')}" ${sel?'selected':''}>${v}</option>`;}
-function initControls(){
-  E.afterStatus.innerHTML = STATUS_OPTIONS.map(s=>opt(s,s===DEFAULT_AFTER_SEND)).join('');
-  E.fStatus.innerHTML = '<option value="">(All)</option>'+STATUS_OPTIONS.map(s=>opt(s,false)).join('');
-  showEnv();
-}
 function buildUrl(action){
   const u = new URL(EXEC);
   if (action) u.searchParams.set('action',action);
@@ -152,7 +175,6 @@ async function j(u){
   return res.json();
 }
 
-/* ===== Stats & Tabs ===== */
 async function fetchStats(){
   try { 
     const s = await j(buildUrl('stats'));
@@ -173,7 +195,7 @@ function renderTabs(){
   E.tabsWrap.innerHTML = tabs.map(t => {
     const act = (t.key===selected) ? 'active' : '';
     return `<button class="tab ${act}" data-key="${t.key.replaceAll('"','&quot;')}">
-              <span class="truncate max-w-[11rem]">${t.label}</span>
+              <span class="truncate max-w-[12rem]">${t.label}</span>
               <span class="badge">${t.count}</span>
             </button>`;
   }).join('');
@@ -187,7 +209,6 @@ function renderTabs(){
   });
 }
 
-/* ===== Data ===== */
 async function loadRows(){
   const url = buildUrl('recipients');
   const status = (E.fStatus.value||'').trim();
@@ -222,7 +243,6 @@ function updatePagerUI(){
   E.nextPage.disabled = (currentPage>=totalPages);
 }
 
-/* ===== POST helpers ===== */
 async function postAction(action, payload){
   const url = buildUrl('');
   const res = await fetch(url.toString(), {
@@ -244,9 +264,8 @@ function patchCounts(oldS, newS){
   counts[newS]=(counts[newS]||0)+1;
 }
 
-/* ===== Render ===== */
 function selectHtml(opts, current){
-  let html = '<select class="rounded p-1">';
+  let html = '<select class="select">';
   for (const o of opts) html += `<option value="${o.replaceAll('"','&quot;')}" ${o===current?'selected':''}>${o}</option>`;
   html += '</select>'; return html;
 }
@@ -259,11 +278,9 @@ function renderTable(){
   slice.forEach(r=>{
     const tr = document.createElement('tr'); tr.className='border-b border-neutral-800';
 
-    // Message Type (read-only chip)
     const tdType = document.createElement('td'); tdType.className='p-2';
-    tdType.innerHTML = `<span class="badge">${r.messageType||'Recruit'}</span>`;
+    tdType.innerHTML = `<span class="badge">${(r.messageType||'Recruit')}</span>`;
 
-    // Status (editable)
     const tdStatus = document.createElement('td'); tdStatus.className='p-2';
     tdStatus.innerHTML = selectHtml(STATUS_OPTIONS, r.status||'');
     const sel = tdStatus.querySelector('select');
@@ -278,25 +295,35 @@ function renderTable(){
       finally { sel.disabled=false; }
     });
 
-    // WhatsApp button
     const tdWA = document.createElement('td'); tdWA.className='p-2';
-    const btn = document.createElement('button'); btn.className='btn px-3 py-1 rounded'; btn.textContent='Send';
+    const btn = document.createElement('button'); btn.className='btn px-3 py-1 rounded-lg'; btn.textContent='Send';
     const link = r.waLink||"";
     const valid = /^https:\/\/(api\.whatsapp\.com|web\.whatsapp\.com|wa\.me)\//.test(link);
     if (!link || !valid) { btn.disabled=true; btn.title='No valid WhatsApp link'; }
     btn.addEventListener('click', async ()=>{
       if (!link || !valid) return;
-      const now = Date.now(); if (now - LAST_SEND_TS < 1200) return; LAST_SEND_TS = now;
-      let phone = "", text = "";
-      try { const u = new URL(link); phone=u.searchParams.get('phone')||""; text=u.searchParams.get('text')||""; } catch(e){}
+      const now = Date.now(); if (now - LAST_SEND_TS < 1000) return; LAST_SEND_TS = now;
+
+      let phone="", text="";
+      try {
+        const u = new URL(link);
+        phone = (u.searchParams.get('phone') || "").replace(/\D/g,'');
+        text  = u.searchParams.get('text')  || "";
+      } catch(e){}
       if (!phone) { const m = link.match(/wa\.me\/(\d+)/); if (m) phone=m[1]; }
       if (!phone) return;
 
-      const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-      const finalLink = isMobile
-        ? `https://api.whatsapp.com/send?phone=${encodeURIComponent(phone)}&text=${text}`
-        : `https://web.whatsapp.com/send?phone=${encodeURIComponent(phone)}&text=${text}`;
-      try { window.open(finalLink, '_blank', 'noopener'); } catch(e){}
+      const textEnc = encodeURIComponent(text);
+      const desktopLink = `whatsapp://send?phone=${phone}&text=${textEnc}`;
+      const webLink     = `https://web.whatsapp.com/send?phone=${phone}&text=${textEnc}`;
+
+      let fallback = true;
+      try {
+        window.location.href = desktopLink;
+        setTimeout(()=>{ if (!document.hidden) window.open(webLink, '_blank', 'noopener'); }, 900);
+        fallback = false;
+      } catch(e){}
+      if (fallback) { try { window.open(webLink, '_blank', 'noopener'); } catch(e){} }
 
       const newS = (E.afterStatus?.value)||"Event Invite Sent";
       try {
@@ -312,7 +339,7 @@ function renderTable(){
     const tdAg   = document.createElement('td'); tdAg.className='p-2';   tdAg.textContent=r.agency||'';
 
     const tdNote = document.createElement('td'); tdNote.className='p-2';
-    const bN = document.createElement('button'); bN.className='btn-lite px-2 py-1 rounded'; bN.textContent='Edit';
+    const bN = document.createElement('button'); bN.className='btn-lite px-2 py-1 rounded-lg'; bN.textContent='Edit';
     bN.addEventListener('click', async ()=>{
       const value = prompt('Edit note for '+(r.name||''), r.notes||'');
       if (value===null) return;
@@ -332,12 +359,10 @@ function renderTable(){
   });
 }
 
-/* ===== Events ===== */
 function debounce(fn,ms){ let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a),ms); }; }
-const onSearch = debounce(()=>applySearch(), 200);
+const onSearch = debounce(()=>applySearch(), 150);
 
 document.addEventListener('DOMContentLoaded', async ()=>{
-  // init
   E.afterStatus.innerHTML = STATUS_OPTIONS.map(s=>opt(s,s===DEFAULT_AFTER_SEND)).join('');
   E.fStatus.innerHTML = '<option value="">(All)</option>'+STATUS_OPTIONS.map(s=>opt(s,false)).join('');
   showEnv();
