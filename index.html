@@ -34,7 +34,7 @@ a.link{color:#93c5fd;text-decoration:underline} a.link:hover{color:#bfdbfe}
       <img src="./assets/logo.svg" alt="logo" class="h-7"/>
       <div>
         <h1 class="text-xl font-semibold">Recruit 101</h1>
-        <div class="text-xs text-slate-300" id="env">v21.1 — multi-status (tags), manual status only</div>
+        <div class="text-xs text-slate-300" id="env">v21.2 — new-tab send, no hard resets</div>
       </div>
     </div>
     <div class="flex items-center gap-2">
@@ -161,6 +161,7 @@ async function jpost(action, payload={}){
   if(!res.ok) throw new Error(res.status+" "+res.statusText);
   return res.json();
 }
+
 function opt(v,s){return `<option value="${v}"${s?' selected':''}>${v}</option>`}
 function chip(label,count,active){return `<div class="tile ${active?'active':''}" data-k="${label}"><span class="label">${label||'All'}</span><span class="count">${count||0}</span></div>`}
 
@@ -178,17 +179,19 @@ function renderTagGrid(){
   const keys = ["", ...Object.keys(tagCounts).sort((a,b)=>(a||"").localeCompare(b||""))];
   E.gridTags.innerHTML=keys.map(k=>chip(k, k?tagCounts[k]:totalTags, (k||"")===(activeTag||""))).join("");
   [...E.gridTags.querySelectorAll(".tile")].forEach(tile=>{
-    tile.onclick=()=>{ activeTag = tile.dataset.k || ""; E.ftag.value = activeTag; apply(); };
+    tile.onclick=()=>{ activeTag = tile.dataset.k || ""; E.ftag.value = activeTag; apply(false); draw(); };
   });
 }
-async function stats(){
-  try{ const s=await jget("stats"); counts=s.byStatus||{}; tagCounts=s.byTag||{}; E.total.textContent=s.total||0; }
-  catch(e){
-    counts={}; tagCounts={};
-    all.forEach(r=>{ counts[r.status]=(counts[r.status]||0)+1; (r.tags||[]).forEach(t=>{tagCounts[t]=(tagCounts[t]||0)+1;}); });
-    E.total.textContent=all.length;
-  }
-  renderStatusGrid(); renderTagGrid();
+
+async function refreshStatsInBackground(){
+  try{
+    const s=await jget("stats");
+    counts=s.byStatus||counts;
+    tagCounts=s.byTag||tagCounts;
+    E.total.textContent=s.total||E.total.textContent;
+    renderStatusGrid();
+    renderTagGrid();
+  }catch(_){/*silent*/}
 }
 
 async function load(){
@@ -196,15 +199,20 @@ async function load(){
   try{
     const status=(E.f.value||"").trim();
     const js=await jget("recipients", status?{status}:{});
+    const oldPage = page; // keep current page
     all=(js.recipients||[]).map(r=>({ ...r, tags: Array.isArray(r.tags)? r.tags : String(r.tags||'').split(',').map(x=>x.trim()).filter(Boolean) }));
-    await stats(); apply();
+    apply(false); // don't reset page
+    page = Math.max(1, Math.min(oldPage, Math.ceil(view.length/PAGE)||1));
+    draw();
+    refreshStatsInBackground();
   }catch(e){
     E.err.textContent = "Failed to fetch";
     const statsUrl = apiUrl('stats');
     E.help.innerHTML = `<div>Open backend: <a class="link" target="_blank" rel="noopener" href="${statsUrl}">${statsUrl}</a></div>`;
   }
 }
-function apply(){
+
+function apply(resetPage=true){
   const q=(E.q.value||"").toLowerCase().trim();
   view=all.filter(r=>{
     if(q && !(String(r.name||"").toLowerCase().includes(q) || String(r.surname||"").toLowerCase().includes(q) || String(r.agency||"").toLowerCase().includes(q))) return false;
@@ -212,8 +220,9 @@ function apply(){
     return true;
   });
   E.filtered.textContent=view.length;
-  page=1; draw();
+  if (resetPage) page=1;
 }
+
 function pageSlice(){ const s=(page-1)*PAGE; return view.slice(s,s+PAGE); }
 function setPage(){
   const max=Math.max(1,Math.ceil(view.length/PAGE));
@@ -227,16 +236,35 @@ async function changeStatus(r,newStatus,control){
   const rn=rowId(r); if(!rn) return; control && (control.disabled=true);
   const oldStatus = r.status || "";
   r.status = newStatus;
+
+  // Optimistic counts
   if (oldStatus && counts[oldStatus]>0) counts[oldStatus] = (counts[oldStatus]||0) - 1;
   counts[newStatus] = (counts[newStatus]||0) + 1;
   renderStatusGrid();
+
+  // If filtered by active status, remove row quietly
   const active = (E.f.value||"");
   if (active && newStatus !== active){
-    const rid = rn; all = all.filter(x => rowId(x)!== rid); view = view.filter(x => rowId(x)!== rid); draw();
-  } else { draw(); }
-  try{ await jpost("updateSingleStatus", {rowNumber: rn, newStatus}); await stats(); if (active) await load(); }
-  catch(e){ console.error(e); await load(); }
-  finally{ control && (control.disabled=false); }
+    const rid = rn; all = all.filter(x => rowId(x)!== rid); view = view.filter(x => rowId(x)!== rid);
+    draw();
+  } else {
+    draw();
+  }
+
+  try{
+    await jpost("updateSingleStatus", {rowNumber: rn, newStatus});
+    refreshStatsInBackground(); // no hard reload
+  }catch(e){
+    console.error(e);
+    // On failure, revert local change
+    r.status = oldStatus;
+    counts[newStatus] = Math.max(0,(counts[newStatus]||0)-1);
+    counts[oldStatus] = (counts[oldStatus]||0)+1;
+    renderStatusGrid();
+    draw();
+  }finally{
+    control && (control.disabled=false);
+  }
 }
 
 async function editTags(r,btn){
@@ -249,8 +277,13 @@ async function editTags(r,btn){
   try{
     await jpost("updateTags", {rowNumber: rn, tags});
     r.tags = tags;
-    await stats(); apply();
-  }catch(e){ console.error(e); await load(); }
+    // Update tag counts optimistically
+    tagCounts={}; all.forEach(x => (x.rowNumber===rn? (x.tags=tags):null));
+    all.forEach(x => (x.tags||[]).forEach(t=> tagCounts[t]=(tagCounts[t]||0)+1 ));
+    renderTagGrid();
+    apply(false); draw();
+    refreshStatsInBackground();
+  }catch(e){ console.error(e); /* keep old */ }
   finally{ btn.disabled=false; }
 }
 
@@ -283,7 +316,11 @@ function draw(){
     const link=r.waLink||""; 
     const ok=/^https:\/\/(wa\.me|web\.whatsapp\.com|api\.whatsapp\.com)\//.test(link);
     if(!ok) btn.disabled=true;
-    btn.onclick=()=>{ if(Date.now()-LAST_SEND_TS<900) return; LAST_SEND_TS=Date.now(); location.assign(link); };
+    btn.onclick=()=>{
+      if(Date.now()-LAST_SEND_TS<400) return; LAST_SEND_TS=Date.now();
+      const w = window.open(link, "_blank", "noopener");
+      if(!w) location.assign(link); // fallback if blocked
+    };
 
     const tdName=document.createElement("td"); tdName.className="p-2"; tdName.textContent=r.name||"";
     const tdSur=document.createElement("td"); tdSur.className="p-2"; tdSur.textContent=r.surname||"";
@@ -292,7 +329,7 @@ function draw(){
 
     const tdNote=document.createElement("td"); tdNote.className="p-2";
     const nb=document.createElement("button"); nb.className="badge"; nb.textContent="Edit";
-    nb.onclick=async()=>{ const v=prompt("Edit note for "+(r.name||""), r.notes||""); if(v===null) return; nb.disabled=true; try{ await jpost("updateNote", {rowNumber: rowId(r), note:v}); await load(); } finally{ nb.disabled=false; } };
+    nb.onclick=async()=>{ const v=prompt("Edit note for "+(r.name||""), r.notes||""); if(v===null) return; nb.disabled=true; try{ await jpost("updateNote", {rowNumber: rowId(r), note:v}); r.notes=v; draw(); refreshStatsInBackground(); } finally{ nb.disabled=false; } };
 
     tdWA.appendChild(btn);
     tr.append(tdType, tdStatus, tdTags, tdWA, tdName, tdSur, tdNum, tdAg, tdNote);
@@ -303,11 +340,11 @@ function draw(){
 
 document.addEventListener("DOMContentLoaded", async ()=>{
   setBadge();
-  E.f.innerHTML='<option value="">(All)</option>'+STATUS_OPTIONS.map(s=>opt(s,false)).join("");
-  E.ftag.innerHTML='<option value="">(All)</option>';
+  document.getElementById("f").innerHTML='<option value="">(All)</option>'+STATUS_OPTIONS.map(s=>opt(s,false)).join("");
+  document.getElementById("ftag").innerHTML='<option value="">(All)</option>';
   E.q.oninput=()=>apply(); E.clear.onclick=()=>{E.q.value=""; apply();}; 
   E.f.onchange=()=>{ activeStatus=E.f.value||""; load(); };
-  E.ftag.onchange=()=>{ activeTag=E.ftag.value||""; apply(); };
+  E.ftag.onchange=()=>{ activeTag=E.ftag.value||""; apply(false); draw(); };
   E.prev.onclick=()=>{page--; draw();}; E.next.onclick=()=>{page++; draw();};
   E.refresh.onclick=()=>load();
 
