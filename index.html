@@ -31,7 +31,7 @@ a.link{color:#93c5fd;text-decoration:underline} a.link:hover{color:#bfdbfe}
       <img src="./assets/logo.svg" alt="logo" class="h-7"/>
       <div>
         <h1 class="text-xl font-semibold">Recruit 101</h1>
-        <div class="text-xs text-slate-300" id="env">v20.1</div>
+        <div class="text-xs text-slate-300" id="env">v20.2</div>
       </div>
     </div>
     <div class="flex items-center gap-2">
@@ -123,7 +123,7 @@ async function jget(action, params={}){
   if(!res.ok) throw new Error(res.status+" "+res.statusText);
   return res.json();
 }
-// IMPORTANT: No Content-Type header -> browser sends text/plain (simple request) -> no preflight
+// no Content-Type header to avoid preflight
 async function jpost(action, payload={}){
   const url=apiUrl();
   const res=await fetch(url, { method:'POST', body: JSON.stringify({action, payload}), mode:'cors' });
@@ -132,6 +132,7 @@ async function jpost(action, payload={}){
 }
 function opt(v,s){return `<option value="${v}"${s?' selected':''}>${v}</option>`}
 
+// grid
 function renderGrid(){
   const total=Object.values(counts).reduce((a,b)=>a+b,0);
   const tiles=[{k:"", l:"All", c:total}];
@@ -145,12 +146,14 @@ function renderGrid(){
   });
 }
 
+// stats
 async function stats(){
   try{ const s=await jget("stats"); counts=s.byStatus||{}; E.total.textContent=s.total||0; }
   catch(e){ counts={}; all.forEach(r=>counts[r.status]=(counts[r.status]||0)+1); E.total.textContent=all.length; }
   renderGrid();
 }
 
+// load/apply
 async function load(){
   E.err.textContent = ""; E.help.textContent="";
   try{
@@ -164,7 +167,6 @@ async function load(){
     E.help.innerHTML = `<div>Open backend: <a class="link" target="_blank" rel="noopener" href="${statsUrl}">${statsUrl}</a></div>`;
   }
 }
-
 function apply(){
   const q=(E.q.value||"").toLowerCase().trim();
   view=all.filter(r=>!q||String(r.name||"").toLowerCase().includes(q)||String(r.surname||"").toLowerCase().includes(q)||String(r.agency||"").toLowerCase().includes(q));
@@ -180,13 +182,47 @@ function setPage(){
 }
 function rowId(r){ return r.rowNumber || (r.rowIndex!=null ? (r.rowIndex+2) : null); }
 
+// INSTANT MOVE: optimistic status change
 async function changeStatus(r,newStatus,control){
   const rn=rowId(r); if(!rn) return; control && (control.disabled=true);
-  try{ await jpost("updateSingleStatus", {rowNumber: rn, newStatus}); await load(); }
-  catch(e){ console.error(e); }
-  finally{ control && (control.disabled=false); }
+  const oldStatus = r.status || "";
+  r.status = newStatus;
+
+  // update counts immediately
+  if (oldStatus && counts[oldStatus]>0) counts[oldStatus] = (counts[oldStatus]||0) - 1;
+  counts[newStatus] = (counts[newStatus]||0) + 1;
+  renderGrid();
+
+  // if a status filter is active and new status doesn't match, remove from current view instantly
+  const active = (E.f.value||"");
+  if (active && newStatus !== active){
+    const rid = rn;
+    all = all.filter(x => rowId(x)!== rid);
+    view = view.filter(x => rowId(x)!== rid);
+    draw();
+  } else {
+    // just redraw row with new status
+    draw();
+  }
+
+  // persist to backend; if it fails, reload to truth
+  try{
+    await jpost("updateSingleStatus", {rowNumber: rn, newStatus});
+    // Also refresh stats to be exact with backend
+    await stats();
+    if (active) {
+      // reload filtered list to keep pagination sane
+      await load();
+    }
+  }catch(e){
+    console.error(e);
+    await load();
+  }finally{
+    control && (control.disabled=false);
+  }
 }
 
+// draw
 function draw(){
   E.rows.innerHTML="";
   const rows=pageSlice();
@@ -242,6 +278,7 @@ function draw(){
   setPage();
 }
 
+// boot
 document.addEventListener("DOMContentLoaded", async ()=>{
   document.getElementById("after").innerHTML=STATUS_OPTIONS.map(s=>opt(s,s===DEFAULT_AFTER)).join("");
   document.getElementById("f").innerHTML='<option value="">(All)</option>'+STATUS_OPTIONS.map(s=>opt(s,false)).join("");
