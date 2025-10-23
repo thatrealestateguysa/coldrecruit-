@@ -4,25 +4,20 @@
 <meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/>
 <title>Recruit 101</title>
 <link rel="icon" href="./assets/icon.png"><link rel="manifest" href="./manifest.webmanifest">
-<script>if('serviceWorker' in navigator){{window.addEventListener('load',()=>navigator.serviceWorker.register('./service-worker.js').catch(()=>{{}}));}}</script>
+<script>if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('./service-worker.js').catch(()=>{}));}</script>
 <script src="https://cdn.tailwindcss.com"></script>
 <style>
-:root{{ --bg:#0b0c10;--panel:#0f172a;--panel2:#0b1220;--border:#1f2937;--text:#f8fafc;--muted:#e2e8f0;--chip:#334155;--chipText:#f1f5f9;--accent:#e11d48;}}
-html,body{{background:var(--bg);color:var(--text);font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif}}
-.card{{background:var(--panel);border:1px solid var(--border)}}
-.badge{{background:var(--chip);color:var(--chipText);border-radius:9999px;padding:6px 10px;font-size:.75rem}}
-.btn{{background:var(--accent);color:#fff;border-radius:.6rem;padding:.55rem .9rem}}
-.btn:disabled{{opacity:.5;cursor:not-allowed}}
-.btn-ghost{{background:#1f2937;color:#e2e8f0;border:1px solid #334155;border-radius:.6rem;padding:.5rem .8rem}}
-.input,.select{{background:var(--panel2);border:1px solid #64748b;border-radius:.6rem;padding:.6rem .7rem;color:#fff}}
-.table-head{{background:rgba(255,255,255,.04);color:var(--muted)}}
-.tile{{display:flex;align-items:center;justify-content:space-between;gap:.5rem;background:#1e293b;border:1px solid #334155;border-radius:.75rem;padding:.5rem .7rem;cursor:pointer;user-select:none}}
-.tile:hover{{border-color:#94a3b8}} .tile.active{{background:#e11d48;border-color:#e11d48}}
-.tile .label{{font-weight:600}} .tile .count{{background:rgba(255,255,255,.12);padding:.1rem .5rem;border-radius:9999px}}
-.sticky-head{{position:sticky;top:0;background:var(--panel);z-index:10}}
-a.link{{color:#93c5fd;text-decoration:underline}} a.link:hover{{color:#bfdbfe}}
-.tag{{background:#0b1220;border:1px solid #334155;border-radius:999px;padding:.15rem .5rem;font-size:.7rem;margin-right:.25rem}}
-.logo{{height:40px;filter:drop-shadow(0 0 2px rgba(0,0,0,.35));}}
+:root{ --bg:#0b0c10;--panel:#0f172a;--panel2:#0b1220;--border:#1f2937;--text:#f8fafc;--muted:#e2e8f0;--chip:#334155;--chipText:#f1f5f9;--accent:#e11d48;}
+html,body{background:var(--bg);color:var(--text);font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
+.card{background:var(--panel);border:1px solid var(--border)}
+.badge{background:var(--chip);color:var(--chipText);border-radius:9999px;padding:6px 10px;font-size:.75rem}
+.btn{background:var(--accent);color:#fff;border-radius:.6rem;padding:.55rem .9rem}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn-ghost{background:#1f2937;color:#e2e8f0;border:1px solid #334155;border-radius:.6rem;padding:.5rem .8rem}
+.input,.select{background:var(--panel2);border:1px solid #64748b;border-radius:.6rem;padding:.6rem .7rem;color:#fff}
+.table-head{background:rgba(255,255,255,.04);color:var(--muted)}
+.sticky-head{position:sticky;top:0;background:var(--panel);z-index:10}
+.logo{height:40px;filter:drop-shadow(0 0 2px rgba(0,0,0,.35));}
 </style>
 </head>
 <body class="min-h-screen">
@@ -30,9 +25,10 @@ a.link{{color:#93c5fd;text-decoration:underline}} a.link:hover{{color:#bfdbfe}}
   <header class="flex items-center justify-between gap-3 flex-wrap">
     <div class="flex items-center gap-3">
       <img src="./assets/kw-explore.png" alt="KW Explore" class="logo"/>
-      <div><h1 class="text-xl font-semibold">Recruit 101</h1><div class="text-xs text-slate-300" id="env">v21.5 — desktop-first popup</div></div>
+      <div><h1 class="text-xl font-semibold">Recruit 101</h1><div class="text-xs text-slate-300" id="env">v21.6 — new window every send</div></div>
     </div>
     <div class="flex items-center gap-3">
+      <span id="apiBadge" class="badge hidden"></span>
       <button id="refresh" class="btn">Refresh</button>
     </div>
   </header>
@@ -41,7 +37,6 @@ a.link{{color:#93c5fd;text-decoration:underline}} a.link:hover{{color:#bfdbfe}}
     <div class="flex items-center gap-3 flex-wrap">
       <span class="badge">Total <span id="total">0</span></span>
       <span class="badge">Filtered <span id="filtered">0</span></span>
-      <span id="apiBadge" class="badge hidden"></span>
     </div>
 
     <div class="grid md:grid-cols-3 gap-2 items-end">
@@ -103,7 +98,12 @@ let all=[], view=[], page=1;
 
 function getExec(){ return qs.get('api') || EXEC_LOCKED; }
 function getGid(){ return qs.get('gid') || ""; }
-function apiUrl(action, params={}){ const u=new URL(getExec()); if(action) u.searchParams.set("action", action); const gid=getGid(); if(gid) u.searchParams.set("gid", gid); for(const [k,v] of Object.entries(params||{})) u.searchParams.set(k,v); u.searchParams.set("t", Date.now()); return u.toString(); }
+function apiUrl(action, params={}){
+  const u=new URL(getExec()); if(action) u.searchParams.set("action", action);
+  const gid=getGid(); if(gid) u.searchParams.set("gid", gid);
+  for(const [k,v] of Object.entries(params||{})) u.searchParams.set(k,v);
+  u.searchParams.set("t", Date.now()); return u.toString();
+}
 async function jget(action, params={}){ const r=await fetch(apiUrl(action, params), {mode:'cors'}); if(!r.ok) throw new Error(r.status); return r.json(); }
 async function jpost(action, payload={}){ const r=await fetch(apiUrl(), {method:'POST', body:JSON.stringify({action,payload}), mode:'cors'}); if(!r.ok) throw new Error(r.status); return r.json(); }
 
@@ -112,44 +112,61 @@ function setPage(){ const max=Math.max(1,Math.ceil(view.length/PAGE)); if(page<1
 function pageSlice(){ const s=(page-1)*PAGE; return view.slice(s,s+PAGE); }
 function rowId(r){ return r.rowNumber || (r.rowIndex!=null ? (r.rowIndex+2) : null); }
 
-function parseWa(waLink){ try{ const u=new URL(waLink); const phone=u.pathname.replace(/\//g,'').trim(); const text=u.searchParams.get('text')||''; return { phone, text }; }catch(_){ return { phone:"", text:"" }; } }
+function parseWa(waLink){ try{ const u=new URL(waLink); return { phone:u.pathname.replace(/\\//g,'').trim(), text:u.searchParams.get('text')||'' }; }catch(_){ return { phone:'', text:'' }; } }
 
-function openDesktopOrPopup(waLink){ // NEVER same window
-  const p=parseWa(waLink);
-  const appUrl = `whatsapp://send?phone=${encodeURIComponent(p.phone)}&text=${encodeURIComponent(p.text)}`;
-  const features = 'popup=yes,noopener,noreferrer,width=900,height=780,left=80,top=60,menubar=no,toolbar=no,location=no,status=no,scrollbars=yes,resizable=yes';
+// NEW WINDOW every send (desktop-first)
+function openWhatsAppInNewWindow(waLink){
+  const {phone,text} = parseWa(waLink);
+  const appUrl = `whatsapp://send?phone=${encodeURIComponent(phone)}&text=${encodeURIComponent(text)}`;
+  const features = 'noopener,noreferrer,width=1080,height=900,left=80,top=60,menubar=yes,toolbar=yes,location=yes,status=no,scrollbars=yes,resizable=yes';
+
   let w=null;
-  try{ w = window.open('about:blank','kw_whatsapp',features); }catch(_){}
+  try{ w = window.open('about:blank','_blank',features); }catch(_){}
   if (w){
     try{ w.opener=null; }catch(_){}
-    try{ w.location.href=appUrl; }catch(_){ try{ w.location=appUrl; }catch(__){} }
-    setTimeout(()=>{ try{ w.close(); }catch(__){} try{ window.focus(); }catch(__){} }, 500);
-    setTimeout(()=>{ try{ if(!document.hidden) w.location.href = waLink; }catch(__){} }, 1200);
-    return;
+    try{ w.location.href = appUrl; }catch(_){ try{ w.location = appUrl; }catch(__){} }
+    setTimeout(()=>{ try{ w.location.href = waLink; }catch(__){} }, 1200);
+    return false;
   }
-  // Anchor fallback (still not same tab)
-  const a=document.createElement('a'); a.href=appUrl; a.target='kw_whatsapp'; a.rel='noopener noreferrer';
+  // Fallback if blocked
+  const a=document.createElement('a'); a.href=appUrl; a.target='_blank'; a.rel='noopener noreferrer';
   document.body.appendChild(a); a.click(); a.remove();
-  setTimeout(()=>{ if(!document.hidden) window.open(waLink,'kw_whatsapp',features); }, 1200);
+  setTimeout(()=>{ window.open(waLink,'_blank',features); }, 1200);
+  return false;
 }
 
-async function changeStatus(r,newStatus,sel){ const rn=rowId(r); if(!rn) return; sel && (sel.disabled=true); try{ await jpost("updateSingleStatus", {rowNumber: rn, newStatus}); r.status=newStatus; }finally{ sel && (sel.disabled=false); } }
+async function changeStatus(r,newStatus,sel){ const rn=rowId(r); if(!rn) return; sel && (sel.disabled=true);
+  try{ await jpost("updateSingleStatus", {rowNumber: rn, newStatus}); r.status=newStatus; } finally { sel && (sel.disabled=false); } }
 
 function draw(){ E.rows.innerHTML=""; const rows=pageSlice(); if(!rows.length){E.rows.innerHTML='<tr><td class="p-3 text-slate-300" colspan="8">No rows.</td></tr>'; setPage(); return; }
   rows.forEach(r=>{ const tr=document.createElement("tr"); tr.className="border-b border-slate-800";
     const t1=document.createElement("td"); t1.className="p-2"; t1.innerHTML=`<span class="badge">${r.messageType||'Recruit'}</span>`;
     const t2=document.createElement("td"); t2.className="p-2"; t2.innerHTML=`<select class="select">${STATUS_OPTIONS.map(s=>`<option value="${s}"${s===(r.status||'')?' selected':''}>${s}</option>`).join('')}</select>`; const sel=t2.querySelector('select'); sel.onchange=()=>changeStatus(r, sel.value, sel);
-    const t3=document.createElement("td"); t3.className="p-2"; const btn=document.createElement("button"); btn.className="btn"; btn.textContent="Send"; const ok=/^https:\/\/(wa\.me|web\.whatsapp\.com|api\.whatsapp\.com)\//.test(r.waLink||''); if(!ok) btn.disabled=true; btn.onclick=(e)=>{ e.preventDefault(); e.stopPropagation(); openDesktopOrPopup(r.waLink); }; t3.appendChild(btn);
+    const t3=document.createElement("td"); t3.className="p-2"; const btn=document.createElement("button"); btn.className="btn"; btn.textContent="Send"; const ok=/^https:\\/\\/(wa\\.me|web\\.whatsapp\\.com|api\\.whatsapp\\.com)\\//.test(r.waLink||''); if(!ok) btn.disabled=true; btn.onclick=(e)=>{ e.preventDefault(); e.stopPropagation(); openWhatsAppInNewWindow(r.waLink); }; t3.appendChild(btn);
     const t4=document.createElement("td"); t4.className="p-2"; t4.textContent=r.name||'';
     const t5=document.createElement("td"); t5.className="p-2"; t5.textContent=r.surname||'';
     const t6=document.createElement("td"); t6.className="p-2"; t6.textContent=r.cell||'';
     const t7=document.createElement("td"); t7.className="p-2"; t7.textContent=r.agency||'';
-    const t8=document.createElement("td"); t8.className="p-2"; const nb=document.createElement('button'); nb.className='badge'; nb.textContent='Edit'; nb.onclick=async()=>{ const v=prompt('Edit note for '+(r.name||''), r.notes||''); if(v===null) return; nb.disabled=true; try{ await jpost('updateNote', {rowNumber: rowId(r), note:v}); r.notes=v; draw(); }finally{ nb.disabled=false; } }; t8.appendChild(nb);
-    tr.append(t1,t2,t3,t4,t5,t6,t7,t8); E.rows.appendChild(tr); }); setPage(); }
+    const t8=document.createElement("td"); t8.className="p-2"; const nb=document.createElement('button'); nb.className='badge'; nb.textContent='Edit'; nb.onclick=async()=>{ const v=prompt('Edit note for '+(r.name||''), r.notes||''); if(v===null) return; nb.disabled=true; try{ await jpost('updateNote', {rowNumber: rowId(r), note:v}); r.notes=v; draw(); } finally { nb.disabled=false; } }; t8.appendChild(nb);
+    tr.append(t1,t2,t3,t4,t5,t6,t7,t8); E.rows.appendChild(tr);
+  }); setPage(); }
 
 function apply(reset=true){ const q=(E.q.value||'').toLowerCase().trim(); view=all.filter(r=>{ if(q && !(String(r.name||'').toLowerCase().includes(q)||String(r.surname||'').toLowerCase().includes(q)||String(r.agency||'').toLowerCase().includes(q))) return false; const f=E.f.value||''; if(f && f!==(r.status||'')) return false; return true; }); E.filtered.textContent=view.length; if(reset) page=1; }
 async function load(){ E.err.textContent=''; E.help.textContent=''; try{ const status=(E.f.value||'').trim(); const js=await jget('recipients', status?{'status':status}:{}); all=js.recipients||[]; apply(true); draw(); const s=await jget('stats'); E.total.textContent=s.total||0; }catch(e){ E.err.textContent='Failed to fetch'; const url=apiUrl('stats'); E.help.innerHTML=`Open backend: <a class="link" target="_blank" rel="noopener" href="${url}">${url}</a>`; } }
 
-document.addEventListener('DOMContentLoaded', async ()=>{ $('f').innerHTML='<option value="">(All)</option>'+STATUS_OPTIONS.map(s=>opt(s,false)).join(''); E.q.oninput=()=>apply(); E.clear.onclick=()=>{E.q.value=''; apply();}; E.f.onchange=()=>load(); E.prev.onclick=()=>{page--; draw();}; E.next.onclick=()=>{page++; draw();}; E.refresh.onclick=()=>load(); document.getElementById('apiBadge').textContent=(new URL(getExec())).host; document.getElementById('apiBadge').classList.remove('hidden'); await load(); });
+document.addEventListener('DOMContentLoaded', async ()=>{
+  E.f.innerHTML='<option value="">(All)</option>'+STATUS_OPTIONS.map(s=>opt(s,false)).join('');
+  E.q.oninput=()=>apply();
+  E.clear.onclick=()=>{E.q.value=''; apply();};
+  E.f.onchange=()=>load();
+  E.prev.onclick=()=>{page--; draw();};
+  E.next.onclick=()=>{page++; draw();};
+  E.refresh.onclick=()=>load();
+
+  const ex = getExec(); try{ E.apiBadge.textContent=(new URL(ex)).host; }catch(_){ E.apiBadge.textContent=ex; }
+  E.apiBadge.classList.remove('hidden');
+
+  await load();
+});
 </script>
 </body></html>
