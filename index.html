@@ -13,16 +13,15 @@
       --panel:#0f172a;
       --panel-strong:#0b1220;
       --border:#1f2937;
-      --muted:#cbd5e1;
-      --muted-weak:#94a3b8;
+      --muted:#e2e8f0;          /* brighter text for contrast */
+      --muted-weak:#cbd5e1;
       --text:#f8fafc;
       --accent:#e11d48;
-      --accent-2:#22c55e;
       --chip:#334155;
       --chip-text:#f1f5f9;
       --input-bg:#0b1220;
-      --input-text:#f8fafc;
-      --input-border:#475569;
+      --input-text:#ffffff;
+      --input-border:#64748b;
       --tab:#334155;
       --tab-text:#f1f5f9;
       --tab-hover:#475569;
@@ -53,9 +52,9 @@
       background:var(--input-bg); color:var(--input-text);
       border:1px solid var(--input-border); outline:none;
     }
-    input::placeholder { color:var(--muted); opacity:.9; }
+    input::placeholder { color:#ffffff; opacity:.6; }
     .select, .input { border-radius:.5rem; padding:.5rem .6rem; }
-    .table-head { color:var(--muted); background:rgba(255,255,255,0.03); }
+    .table-head { color:var(--muted); background:rgba(255,255,255,0.04); }
     .link { color:#93c5fd; text-decoration:underline; }
     .link:hover { color:#bfdbfe; }
   </style>
@@ -65,7 +64,7 @@
     <header class="flex items-center justify-between">
       <div>
         <h1 class="text-xl font-semibold">Recruit 101</h1>
-        <div class="text-xs muted" id="envInfo">v17</div>
+        <div class="text-xs muted" id="envInfo">v17b</div>
       </div>
       <div class="flex items-center gap-2">
         <label class="text-sm">After-send status</label>
@@ -85,14 +84,14 @@
 
       <div class="grid md:grid-cols-3 gap-2 items-end">
         <div class="md:col-span-2">
-          <label class="text-sm block mb-1">Search (Name or Agency)</label>
+          <label class="text-sm block mb-1 muted">Search (Name or Agency)</label>
           <div class="flex gap-2">
             <input id="q" class="input w-full" placeholder="Type to filter… (e.g. Ndlovu or 'Explore')" />
             <button id="btnClearQ" class="btn-lite px-3 py-2 rounded-lg">Clear</button>
           </div>
         </div>
         <div>
-          <label class="text-sm block mb-1">Status filter</label>
+          <label class="text-sm block mb-1 muted">Status filter</label>
           <select id="fStatus" class="select w-full"></select>
         </div>
       </div>
@@ -129,7 +128,7 @@
     </section>
 
     <footer class="text-xs muted text-center py-4">
-      If your sheet layout changes, refresh this page. Need help? Click <a class="link" href="https://script.google.com/macros/s/AKfycbyvfBTI8TtRHb_6lnAvI5GEo90fJSQJ0HKRYKACgKoBrY4txHmpvlThSiBiicXjnJJq6g/exec?action=stats" target="_blank" rel="noopener">here</a> to check backend stats.
+      Check backend stats: <a class="link" href="https://script.google.com/macros/s/AKfycbyvfBTI8TtRHb_6lnAvI5GEo90fJSQJ0HKRYKACgKoBrY4txHmpvlThSiBiicXjnJJq6g/exec?action=stats" target="_blank" rel="noopener">link</a>
     </footer>
   </div>
 
@@ -160,7 +159,7 @@ const E={
 
 let currentPage=1, rowsAll=[], rowsView=[], counts={}, LAST_SEND_TS=0;
 
-function showEnv(){ E.envInfo.textContent='v17'+(GID? ' · gid '+GID : ''); }
+function showEnv(){ E.envInfo.textContent='v17b'+(GID? ' · gid '+GID : ''); }
 function opt(v,sel){return `<option value="${v.replaceAll('"','&quot;')}" ${sel?'selected':''}>${v}</option>`;}
 function buildUrl(action){
   const u = new URL(EXEC);
@@ -276,7 +275,7 @@ function renderTable(){
     E.rows.innerHTML = '<tr><td class="p-4 muted" colspan="8">No rows match your filters.</td></tr>'; return;
   }
   slice.forEach(r=>{
-    const tr = document.createElement('tr'); tr.className='border-b border-neutral-800';
+    const tr = document.createElement('tr'); tr.className='border-b border-neutral-800'; tr.dataset.rowIndex = r.rowIndex;
 
     const tdType = document.createElement('td'); tdType.className='p-2';
     tdType.innerHTML = `<span class="badge">${(r.messageType||'Recruit')}</span>`;
@@ -289,8 +288,10 @@ function renderTable(){
       sel.disabled=true;
       try {
         const res = await postAction('updateSingleStatus', { rowIndex:r.rowIndex, newStatus:newS });
-        if (res && res.row) { replaceRowInMemory(res.row); patchCounts(oldS, res.row.status); renderTable(); renderTabs(); }
-        else e.target.value = oldS;
+        if (res && res.row) {
+          replaceRowInMemory(res.row); patchCounts(oldS, res.row.status);
+          await loadRows(); // hard refresh from backend to avoid any snap-back
+        } else e.target.value = oldS;
       } catch(err) { console.error(err); e.target.value = oldS; }
       finally { sel.disabled=false; }
     });
@@ -325,11 +326,17 @@ function renderTable(){
       } catch(e){}
       if (fallback) { try { window.open(webLink, '_blank', 'noopener'); } catch(e){} }
 
+      // Update status AFTER sending, then hard reload rows from backend
       const newS = (E.afterStatus?.value)||"Event Invite Sent";
+      btn.disabled = true;
       try {
         const res = await postAction('updateSingleStatus', { rowIndex:r.rowIndex, newStatus:newS });
-        if (res && res.row) { patchCounts(r.status, res.row.status); replaceRowInMemory(res.row); renderTable(); renderTabs(); }
+        if (res && res.row) {
+          replaceRowInMemory(res.row); patchCounts(r.status, res.row.status);
+          await loadRows(); // ensure UI matches sheet (prevents reset)
+        }
       } catch(e){ console.error(e); }
+      finally { btn.disabled = false; }
     });
     tdWA.appendChild(btn);
 
@@ -346,7 +353,7 @@ function renderTable(){
       bN.disabled=true;
       try {
         const res = await postAction('updateNote', { rowIndex:r.rowIndex, note:value });
-        if (res && res.row) { replaceRowInMemory(res.row); renderTable(); }
+        if (res && res.row) { replaceRowInMemory(res.row); await loadRows(); }
       } catch(e){ console.error(e); }
       finally { bN.disabled=false; }
     });
