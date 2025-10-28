@@ -1,4 +1,9 @@
-# Recruit 101 — Frontend (Static, GitHub Pages-ready)
+<!doctype html>
+<html><head><meta charset="utf-8"><title>README</title>
+<link rel="stylesheet" href="./styles.css">
+</head><body>
+<main class="table-wrap" style="max-width:900px;margin:40px auto">
+<pre class="code"># Recruit 101 — Frontend (Static, GitHub Pages-ready)
 
 This is a **static frontend** for your Google Apps Script backend. Deploy it on GitHub Pages (or any static host) and point it at your published Web App URL.
 
@@ -12,7 +17,7 @@ window.APP_CONFIG = {
 };
 ```
 
-> You can also use the `.../macros/s/.../exec` URL if you prefer.
+&gt; You can also use the `.../macros/s/.../exec` URL if you prefer.
 
 ## 2) Run locally
 
@@ -37,7 +42,7 @@ Just open `index.html` in a browser. (If CORS is restricted on your domain, test
 
 ## 5) Back-end endpoints used
 
-- `GET ?action=recipients&status=…`
+- `GET ?action=recipients&amp;status=…`
 - `GET ?action=stats`
 - `POST { action: "updateSingleStatus", payload: { rowNumber, newStatus } }`
 - `POST { action: "updateNote", payload: { rowNumber, note } }`
@@ -46,8 +51,11 @@ Just open `index.html` in a browser. (If CORS is restricted on your domain, test
 
 - If clicking WhatsApp opens in the same tab, we still force `window.open(url, "_blank", "noopener,noreferrer")` for a **new tab/window**.
 - Make sure your Apps Script is deployed as a Web App (**Execute as you**, **Anyone with the link**).
-- If you have multiple tabs in the Sheet, you can pass `&gid=<tabId>` to the backend URL to target a specific tab (the backend already supports that).
+- If you have multiple tabs in the Sheet, you can pass `&amp;gid=&lt;tabId&gt;` to the backend URL to target a specific tab (the backend already supports that).
 
 ---
 
 Built with ❤️ to pair with your **Recruit 101** Apps Script.
+</pre>
+</main>
+</body></html>
