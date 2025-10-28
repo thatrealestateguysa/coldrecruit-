@@ -31,7 +31,8 @@ body{
 h1{margin:0;font-size:20px}
 .subtitle{margin:2px 0 0;color:var(--muted);font-size:12px}
 
-.actions{display:flex;gap:8px;align-items:center}
+.actions{display:flex;gap:12px;align-items:center}
+.small{font-size:12px}
 .btn{
   background:var(--accent); border:none; color:white; padding:8px 12px;
   border-radius:10px; cursor:pointer; font-weight:600;
@@ -41,6 +42,19 @@ h1{margin:0;font-size:20px}
 .btn-secondary{background:var(--accent2); color:var(--fg)}
 .btn-link{background:transparent; color:var(--muted); text-decoration:underline; padding:0 4px}
 .btn-link:hover{color:var(--fg)}
+
+/* Status tabs */
+.status-tabs{
+  display:flex; flex-wrap:wrap; gap:8px; padding:12px 20px; border-bottom:1px solid var(--accent2);
+}
+.tab{
+  background:var(--card); border:1px solid var(--accent2); border-radius:999px;
+  padding:6px 10px; display:inline-flex; gap:8px; align-items:center; cursor:pointer;
+  font-weight:600;
+}
+.tab .count{opacity:.8; font-weight:700; font-variant-numeric:tabular-nums}
+.tab.active{border-color:var(--accent); box-shadow:0 0 0 1px var(--accent) inset}
+.tab:hover{filter:brightness(1.05)}
 
 .toolbar{
   display:grid; grid-template-columns: repeat(6, minmax(0,1fr));

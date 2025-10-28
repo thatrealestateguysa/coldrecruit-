@@ -1,4 +1,1 @@
-// ======= CONFIG =======
-window.APP_CONFIG = {
-  API_BASE: "https://script.google.com/macros/s/AKfycbwHjksDaz3JAxsdESl1PV2Ysj4Lh_vXHOOkyNIb1JTYVkk08bnAM5tlxypapeM7eLwJ/exec"
-};
+window.APP_CONFIG = { API_BASE: "https://script.google.com/macros/s/AKfycbwHjksDaz3JAxsdESl1PV2Ysj4Lh_vXHOOkyNIb1JTYVkk08bnAM5tlxypapeM7eLwJ/exec" };

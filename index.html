@@ -15,19 +15,23 @@
       <div class="logo">KW</div>
       <div>
         <h1>Recruit 101</h1>
-        <p class="subtitle">Lightweight frontend for your Apps Script backend</p>
+        <p class="subtitle">Fast filters • Reliable sync • WhatsApp-safe</p>
       </div>
     </div>
     <nav class="actions">
-      <button id="btnRefresh" class="btn">Refresh</button>
+      <span id="syncInfo" class="muted small">Last sync: —</span>
+      <button id="btnRefresh" class="btn">Sync</button>
       <button id="btnStats" class="btn btn-secondary">Stats</button>
       <a id="btnReadme" class="btn btn-link" href="./README.html" target="_blank" rel="noopener">Help</a>
     </nav>
   </header>
 
+  <!-- STATUS TABS -->
+  <section class="status-tabs" id="statusTabs"></section>
+
   <section class="toolbar">
     <div class="group">
-      <label>Status filter</label>
+      <label>Status filter (dropdown)</label>
       <select id="statusFilter"></select>
     </div>
     <div class="group">

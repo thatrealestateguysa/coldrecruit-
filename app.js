@@ -10,6 +10,7 @@
 
   // Elements
   const el = {
+    statusTabs: document.getElementById('statusTabs'),
     statusFilter: document.getElementById('statusFilter'),
     bulkStatusSelect: document.getElementById('bulkStatusSelect'),
     searchInput: document.getElementById('searchInput'),
@@ -25,7 +26,8 @@
     closeStats: document.getElementById('closeStats'),
     bulkApply: document.getElementById('bulkApply'),
     bulkSelectAll: document.getElementById('bulkSelectAll'),
-    checkAll: document.getElementById('checkAll')
+    checkAll: document.getElementById('checkAll'),
+    syncInfo: document.getElementById('syncInfo')
   };
 
   const API_BASE = (window.APP_CONFIG && window.APP_CONFIG.API_BASE) || "";
@@ -38,6 +40,16 @@
   let filtered = [];
   let page = 1;
   let perPage = parseInt(el.pageSize.value, 10) || 15;
+  let currentStatus = ""; // "" means All
+
+  function formatTime(d){
+    const pad = n => String(n).padStart(2, "0");
+    return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate())+" "+pad(d.getHours())+":"+pad(d.getMinutes());
+  }
+
+  function setSynced(){
+    el.syncInfo.textContent = "Last sync: " + formatTime(new Date());
+  }
 
   function buildStatusSelect(selectEl, includeBlank=true){
     selectEl.innerHTML = "";
@@ -57,18 +69,51 @@
   buildStatusSelect(el.statusFilter, true);
   buildStatusSelect(el.bulkStatusSelect, false);
 
-  // Fetch helpers
+  // Tabs
+  function renderTabs(byStatus){
+    let total = 0;
+    Object.keys(byStatus||{}).forEach(k => total += byStatus[k]);
+    const frag = document.createDocumentFragment();
+    function tab(label, value, count){
+      const b = document.createElement('button');
+      b.className = "tab"+(currentStatus===value ? " active": "");
+      b.dataset.value = value;
+      b.innerHTML = `<span>${label}</span><span class="count">${count}</span>`;
+      b.addEventListener('click', () => {
+        currentStatus = value;
+        el.statusFilter.value = value;
+        loadRecipients();
+      });
+      return b;
+    }
+    frag.appendChild(tab("All", "", total));
+    STATUS_OPTIONS.forEach(s => {
+      const c = (byStatus && byStatus[s]) || 0;
+      frag.appendChild(tab(s, s, c));
+    });
+    el.statusTabs.innerHTML = "";
+    el.statusTabs.appendChild(frag);
+  }
+
+  // Fetch helpers (no-cache + cache-buster)
   async function apiGet(params={}){
+    params.ts = Date.now();
     const qs = new URLSearchParams(params).toString();
     const url = API_BASE + (qs ? ("?" + qs) : "");
-    const res = await fetch(url, { method: "GET" });
+    const res = await fetch(url, {
+      method: "GET",
+      cache: "no-store",
+      headers: { "Cache-Control": "no-cache" }
+    });
     return res.json();
   }
 
   async function apiPost(body){
+    body.ts = Date.now();
     const res = await fetch(API_BASE, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      cache: "no-store",
+      headers: { "Content-Type": "application/json", "Cache-Control": "no-cache" },
       body: JSON.stringify(body)
     });
     return res.json();
@@ -77,7 +122,7 @@
   // Data load
   async function loadRecipients(){
     el.tbody.innerHTML = `<tr><td colspan="9" class="muted">Loading…</td></tr>`;
-    const status = el.statusFilter.value || "";
+    const status = currentStatus || el.statusFilter.value || "";
     const data = await apiGet({ action: "recipients", status });
     if (data.result !== "success"){
       el.tbody.innerHTML = `<tr><td colspan="9" class="muted">Error loading data</td></tr>`;
@@ -86,6 +131,13 @@
     }
     allRows = data.recipients || [];
     applyFilters();
+    setSynced();
+
+    // Update tabs with fresh counts
+    const stat = await apiGet({ action: "stats" });
+    if (stat && stat.result === "success"){
+      renderTabs(stat.byStatus || {});
+    }
   }
 
   // Filters & pagination
@@ -108,7 +160,7 @@
     const start = (page - 1) * perPage;
     const slice = filtered.slice(start, start + perPage);
 
-    const rows = slice.map((r, idx) => {
+    const rows = slice.map((r) => {
       const checkedId = `chk-${r.rowNumber}`;
       const safeUrl = r.waLink || "";
       const statusSel = statusSelectHtml(r);
@@ -134,6 +186,11 @@
     el.prev.disabled = page <= 1;
     el.next.disabled = page >= totalPages;
     el.checkAll.checked = false;
+
+    // Mark active tab
+    Array.from(el.statusTabs.querySelectorAll(".tab")).forEach(t => {
+      t.classList.toggle("active", t.dataset.value === (currentStatus || ""));
+    });
   }
 
   // Helpers
@@ -169,7 +226,10 @@
   });
   el.closeStats.addEventListener('click', () => el.statsDialog.close());
 
-  el.statusFilter.addEventListener('change', loadRecipients);
+  el.statusFilter.addEventListener('change', () => {
+    currentStatus = el.statusFilter.value || "";
+    loadRecipients();
+  });
   el.pageSize.addEventListener('change', renderPage);
   el.searchInput.addEventListener('input', () => { page=1; applyFilters(); });
   el.prev.addEventListener('click', () => { page=Math.max(1,page-1); renderPage(); });
@@ -185,8 +245,9 @@
     if (target.classList.contains('status-select')){
       target.disabled = true;
       const newStatus = target.value;
-      await apiPost({ action: "updateSingleStatus", payload: { rowNumber, newStatus } });
+      const res = await apiPost({ action: "updateSingleStatus", payload: { rowNumber, newStatus } });
       target.disabled = false;
+      await loadRecipients(); // hard resync from backend
     }
   });
 
@@ -199,6 +260,7 @@
     target.disabled = true;
     await apiPost({ action: "updateNote", payload: { rowNumber, note: target.value } });
     target.disabled = false;
+    await loadRecipients();
   });
 
   // Bulk actions
@@ -212,9 +274,8 @@
       const tr = c.closest('tr[data-row]');
       const rowNumber = Number(tr.getAttribute('data-row'));
       await apiPost({ action: "updateSingleStatus", payload: { rowNumber, newStatus } });
-      const sel = tr.querySelector('.status-select');
-      if (sel) sel.value = newStatus;
     }
+    await loadRecipients();
   });
 
   el.bulkSelectAll.addEventListener('click', () => {
@@ -226,9 +287,10 @@
     document.querySelectorAll('.row-check').forEach(x => x.checked = val);
   });
 
-  // Initial load (defer a tick for config load)
-  window.addEventListener('DOMContentLoaded', () => {
-    // If API_BASE was pasted into config.js, pre-load
-    if (API_BASE) loadRecipients();
+  // Initial load
+  window.addEventListener('DOMContentLoaded', async () => {
+    if (API_BASE) {
+      await loadRecipients();
+    }
   });
 })();
