@@ -1,20 +1,11 @@
-# Explorian Recruiter — Frontend (Vanilla)
+# Explorian Recruiter — Frontend (v2)
 
-A lightweight web app to send WhatsApp messages and manage statuses, talking directly to your **Apps Script backend**.
+This build fixes:
+- **Dynamic statuses** (auto-discovers from your sheet) + an **All** tab
+- On **Send**, we also set **Event Type** on the backend so your new message type shows in the sheet
+- WhatsApp Desktop links
 
-**Backend URL** (already configured in `config.js`):  
+Configured backend:
 https://script.google.com/macros/s/AKfycbxfPDZd92-zgdcwGDmTfLtvedx_K0yIqTKNmOP6ioha6R7yYhpfayXahqGlibSpq0FZeg/exec
 
-## Features
-- Status filtering with counts
-- Search
-- Edit **Status** and **Notes** (auto-updates Last Contact on status change)
-- Send via **WhatsApp Desktop** (fall back to web if you uncheck the toggle)
-- Bulk send to selected
-- Export CSV of the current grid
-- Grey & Red theme (brand-safe), different layout than the previous build
-
-## Deploy
-- Drag this folder into Netlify/Vercel or any static host.
-- Or run locally with any static server, e.g. `npx serve`.
-
+To add a **new message type**, edit `templates.js` and add a key/value. That key appears in the dropdown, and the body fills the composer.

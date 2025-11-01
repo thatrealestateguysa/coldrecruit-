@@ -1,4 +1,5 @@
 (function(){
+  // Add new message types here (key -> message body). These drive the dropdown.
   window.TEMPLATES = {
     "Event Invite": `[Name], are you ready to close deals where everyone wins? 🤝
 
@@ -15,6 +16,11 @@ If you’re open, reply YES and we’ll take it from there. If not, reply STOP a
 
 Dawie
 Team Leader at KW Explore
-https://thatrealestateguysa.kw.com/`
+https://thatrealestateguysa.kw.com/`,
+    "Event 1 - Win Win": `[Name], are you ready to close deals where everyone wins? 🤝
+
+(Your Win-Win specific version here)
+
+Regards, Dawie Team Leader at KW Explore Fourways`
   };
 })();
