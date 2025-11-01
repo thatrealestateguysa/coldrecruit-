@@ -1,18 +1,20 @@
-# Recruit 101 — Frontend v4.0
+# Explorian Recruiter — Frontend (Vanilla)
 
-**Endpoint configured**
-```
-https://script.google.com/macros/s/AKfycby1BllzYaw9v8hCZ8ycqrEFNhut9x2ag9kQovm5SRIw9WOo3ldXXFMEWEzhKvuHW6hd/exec
-```
+A lightweight web app to send WhatsApp messages and manage statuses, talking directly to your **Apps Script backend**.
 
-**Features**
-- Top status tabs (All + each status) with live counts
-- Clicking a tab filters server-side (`?status=...`)
-- Search, pagination, bulk set status
-- Inline status & note updates (round-trip to backend, then hard re-sync)
-- No-cache + cache-busting on all requests
-- Desktop-friendly WhatsApp open behavior
+**Backend URL** (already configured in `config.js`):  
+https://script.google.com/macros/s/AKfycbxfPDZd92-zgdcwGDmTfLtvedx_K0yIqTKNmOP6ioha6R7yYhpfayXahqGlibSpq0FZeg/exec
 
-**Deploy**
-- Upload these files to a web host (e.g., GitHub Pages).
-- If you ever change your Apps Script URL, edit `config.js`.
+## Features
+- Status filtering with counts
+- Search
+- Edit **Status** and **Notes** (auto-updates Last Contact on status change)
+- Send via **WhatsApp Desktop** (fall back to web if you uncheck the toggle)
+- Bulk send to selected
+- Export CSV of the current grid
+- Grey & Red theme (brand-safe), different layout than the previous build
+
+## Deploy
+- Drag this folder into Netlify/Vercel or any static host.
+- Or run locally with any static server, e.g. `npx serve`.
+
